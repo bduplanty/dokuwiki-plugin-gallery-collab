@@ -1,0 +1,117 @@
+gallery-collab: Changes from the Base Plugin
+=============================================
+
+This file tracks how this fork differs from the upstream gallery plugin
+(https://github.com/splitbrain/dokuwiki-plugin-gallery). The original README
+is kept unchanged; add an entry here whenever we extend or modify the code.
+
+Base
+----
+
+  Upstream project : splitbrain/dokuwiki-plugin-gallery
+  Base version     : 2026-09-02 (plugin.info.txt)
+  Base commit      : ddde5b9 (master, "Merge pull request #219 ...")
+
+
+Identity
+--------
+
+  Plugin name (base) : gallerycollab   (was: gallery) - install in lib/plugins/gallerycollab/
+  Author             : Bruce DuPlanty <bduplanty@gmail.com>; original gallery plugin by Andreas Gohr
+                       and contributors (credits and GPL 2 license kept in the source files)
+  Renamed            : PHP namespace dokuwiki\plugin\gallerycollab, plugin classes
+                       syntax_/action_plugin_gallerycollab_*, plugin_load() names, JS language/info keys
+                       (LANG.plugins.gallerycollab, JSINFO.plugins.gallerycollab), AJAX call names, tests.
+  Unchanged          : wiki syntax {{gallery>...}} and <gallery>, CSS classes (plugin-gallery,
+                       gallery-*), the ProseMirror node name, the data/gallery-collab sidecar folder.
+  plugin.info.txt url: still points at the upstream docs page - replace with this fork's URL.
+
+
+Summary of differences
+----------------------
+
+  Collaborative captions: users in contributor groups suggest titles/captions, users in reviewer
+  groups (and superusers) approve them. Approved captions override the image's own metadata when a
+  gallery is rendered; originals are never lost (sidecar history, optional IPTC write-back for JPEG).
+  Feed galleries are not supported.
+
+
+Change log
+----------
+
+Add one entry per change, newest first, using this template:
+
+  ### YYYY-MM-DD - Short title
+  Files   : path/to/file.php, ...
+  Purpose : why the change was made
+  Details : what changed relative to the base behaviour
+  Compat  : any syntax, config, or upstream-merge implications
+
+  ### 2026-10-24 - Archive export tool and backup guide
+  Files   : tools/export_captions.py, tools/test_export_captions.py, docs/BACKUP_AND_ARCHIVE.md
+  Purpose : long-term archive of the latest approved titles/captions, independent of the wiki, for
+            images whose file is not updated (non-JPEG, or write_iptc off)
+  Details : Python 3.8+, standard library only. Runs locally against a downloaded data/media and
+            data/gallery-collab. Writes titlesandcaptions/<namespace>/<image>.md for every image,
+            index.html (browser view with filter) and index.json (for scripts). Never modifies inputs.
+  Compat  : stand-alone, not loaded by DokuWiki. The tools/ and docs/ folders are ignored by the plugin.
+
+  ### 2026-10-24 - Fix sidecar location with relative savedir
+  Files   : classes/CaptionStore.php
+  Purpose : with $conf['savedir'] = './data' the AJAX endpoint (lib/exe/) and doku.php used different
+            folders, so approved captions never showed in galleries
+  Details : CaptionStore::baseDir() anchors savedir at DOKU_INC
+  Compat  : sidecar files already written by the old code sit in <wiki>/lib/exe/data/gallery-collab/;
+            move that folder to <wiki>/data/gallery-collab/ (or re-approve the captions)
+
+  ### 2026-10-24 - Gallery no longer re-enables page caching
+  Files   : syntax/main.php
+  Purpose : ~~NOCACHE~~ on a page was overridden because the gallery set info['cache'] = true
+  Details : the gallery now only sets info['cache'] = false when the cache option is off
+  Compat  : galleries on pages with ~~NOCACHE~~ are no longer cached (intended)
+
+  ### 2026-10-24 - Rename plugin to gallerycollab
+  Files   : plugin.info.txt, all PHP/JS under action/, syntax/, classes/, script/, _test/, conf/, README
+  Purpose : make the fork installable next to / instead of the upstream gallery plugin
+  Details : see "Identity" above. Config is now stored under plugin»gallerycollab»*, so settings
+            from the old gallery plugin must be re-entered. Translations in lang/ need no change.
+  Compat  : Existing pages keep working (same syntax). DokuWiki autoloading requires the folder to be
+            named gallerycollab. Do not run this and the upstream gallery plugin together: both
+            claim {{gallery>}}.
+
+  ### 2026-10-24 - Collaborative captions (suggest / review)
+  Files   : action/collab.php, classes/CaptionStore.php, script/collab.js, script.js, screen.less,
+            classes/Image.php, classes/ListGallery.php, classes/XHTMLFormatter.php,
+            conf/default.php, conf/metadata.php, lang/en/lang.php, lang/en/settings.php,
+            _test/CaptionStoreTest.php
+  Purpose : let a defined group suggest title/caption text for images without touching the file's
+            EXIF/IPTC data, and let a reviewer group approve or edit what is displayed.
+  Details : - New config: contributor_groups (default "user"), reviewer_groups (default "reviewer"),
+              write_iptc (default off). Superusers are always reviewers.
+            - Suggestions and approved overrides are stored per image as JSON in
+              data/gallery-collab/<media id>.json (suggestions, override, history).
+            - Image applies the override on load; list-gallery inline titles do not replace it.
+            - AJAX endpoint ajax.php?call=gallery_collab (POST + sectok): get, suggest, approve,
+              reject, delete, revert. Contributors see only their own suggestions.
+            - A pencil button on each local thumbnail (shown to permitted users only) opens a dialog.
+            - XHTML figures carry data-id (local images only).
+            - Approving/reverting touches data/gallery-collab/.stamp; all rendered pages (xhtml cache)
+              depend on it (PARSER_CACHE_USE) so cached output is refreshed.
+            - Thumbnails show a badge (upper left) with the pending count: reviewers see all pending
+              suggestions, contributors their own. Loaded via AJAX op "pending" because the page
+              HTML is cached and identical for everyone; refreshed when the dialog closes.
+            - With write_iptc and a writable JPEG plus upload ACL, Iptc.Headline / Iptc.Caption are
+              also written. The sidecar override stays the source of truth.
+  Compat  : No syntax change. Feed galleries and external images are unaffected.
+            NOT YET RUN: no PHP/DokuWiki in the dev environment - tests and UI need a first run.
+
+
+Upstream merge notes
+--------------------
+
+Record files with heavy local modifications here so future merges from
+upstream can be handled carefully.
+
+  classes/Image.php (constructor + applyOverride), classes/ListGallery.php, classes/XHTMLFormatter.php
+  (data-id) and script.js (one include line) are small edits to upstream files. Everything else
+  collab-related is in new files.
