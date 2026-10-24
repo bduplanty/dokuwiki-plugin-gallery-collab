@@ -2,12 +2,12 @@
 
 use dokuwiki\Extension\SyntaxPlugin;
 use dokuwiki\File\MediaResolver;
-use dokuwiki\plugin\gallery\classes\BasicFormatter;
-use dokuwiki\plugin\gallery\classes\FeedGallery;
-use dokuwiki\plugin\gallery\classes\ListGallery;
-use dokuwiki\plugin\gallery\classes\NamespaceGallery;
-use dokuwiki\plugin\gallery\classes\Options;
-use dokuwiki\plugin\gallery\classes\XHTMLFormatter;
+use dokuwiki\plugin\gallerycollab\classes\BasicFormatter;
+use dokuwiki\plugin\gallerycollab\classes\FeedGallery;
+use dokuwiki\plugin\gallerycollab\classes\ListGallery;
+use dokuwiki\plugin\gallerycollab\classes\NamespaceGallery;
+use dokuwiki\plugin\gallerycollab\classes\Options;
+use dokuwiki\plugin\gallerycollab\classes\XHTMLFormatter;
 
 /**
  * Embed an image gallery
@@ -16,8 +16,9 @@ use dokuwiki\plugin\gallery\classes\XHTMLFormatter;
  * @author     Andreas Gohr <andi@splitbrain.org>
  * @author     Joe Lapp <joe.lapp@pobox.com>
  * @author     Dave Doyle <davedoyle.canadalawbook.ca>
+ * @author     Bruce DuPlanty <bduplanty@gmail.com>
  */
-class syntax_plugin_gallery_main extends SyntaxPlugin
+class syntax_plugin_gallerycollab_main extends SyntaxPlugin
 {
     /** @inheritdoc */
     public function getType()
@@ -40,7 +41,7 @@ class syntax_plugin_gallery_main extends SyntaxPlugin
     /** @inheritdoc */
     public function connectTo($mode)
     {
-        $this->Lexer->addSpecialPattern('\{\{gallery>[^}]*\}\}', $mode, 'plugin_gallery_main');
+        $this->Lexer->addSpecialPattern('\{\{gallery>[^}]*\}\}', $mode, 'plugin_gallerycollab_main');
     }
 
     /** @inheritdoc */

@@ -3,12 +3,12 @@
 use dokuwiki\Extension\ActionPlugin;
 use dokuwiki\Extension\EventHandler;
 use dokuwiki\Extension\Event;
-use dokuwiki\plugin\gallery\classes\Options;
-use dokuwiki\plugin\gallery\GalleryNode;
+use dokuwiki\plugin\gallerycollab\classes\Options;
+use dokuwiki\plugin\gallerycollab\GalleryNode;
 use dokuwiki\plugin\prosemirror\parser\RootNode;
 use dokuwiki\plugin\prosemirror\schema\Node;
 
-class action_plugin_gallery_prosemirror extends ActionPlugin
+class action_plugin_gallerycollab_prosemirror extends ActionPlugin
 {
     /**
      * Registers a callback function for a given event
@@ -48,12 +48,12 @@ class action_plugin_gallery_prosemirror extends ActionPlugin
         if (!isset($JSINFO['plugins'])) {
             $JSINFO['plugins'] = [];
         }
-        $JSINFO['plugins']['gallery'] = [
+        $JSINFO['plugins']['gallerycollab'] = [
             'defaults' => array_map(function ($default) {
                 return ['default' => $default,];
             }, $defaults),
         ];
-        $JSINFO['plugins']['gallery']['defaults']['namespace'] = ['default' => ''];
+        $JSINFO['plugins']['gallerycollab']['defaults']['namespace'] = ['default' => ''];
     }
 
 
@@ -70,13 +70,13 @@ class action_plugin_gallery_prosemirror extends ActionPlugin
      */
     public function renderFromInstructions(Event $event, $param)
     {
-        if ($event->data['name'] !== 'gallery_main') {
+        if ($event->data['name'] !== 'gallerycollab_main') {
             return;
         }
         $event->preventDefault();
         $event->stopPropagation();
 
-        $node = new Node('dwplugin_gallery');
+        $node = new Node('dwplugin_gallerycollab');
         $data = $event->data['data'];
         // FIXME source can be something other than namespace
         [$ns, $options] = $data;
@@ -107,7 +107,7 @@ class action_plugin_gallery_prosemirror extends ActionPlugin
      */
     public function parseToSyntax(Event $event, $param)
     {
-        if ($event->data['node']['type'] !== 'dwplugin_gallery') {
+        if ($event->data['node']['type'] !== 'dwplugin_gallerycollab') {
             return;
         }
         $event->preventDefault();
@@ -129,7 +129,7 @@ class action_plugin_gallery_prosemirror extends ActionPlugin
      */
     public function renderAttributesToHTML(Event $event, $param)
     {
-        if ($event->data !== 'plugin_gallery_prosemirror') {
+        if ($event->data !== 'plugin_gallerycollab_prosemirror') {
             return;
         }
         $event->preventDefault();

@@ -1,7 +1,7 @@
-base   gallery
-author Andreas Gohr
-email  andi@splitbrain.org
-date   2026-09-02
-name   Gallery Plugin
-desc   Creates a gallery of images from a namespace or RSS/ATOM feed
+base   gallerycollab
+author Bruce DuPlanty
+email  bduplanty@gmail.com
+date   2026-10-24
+name   Gallery Collab Plugin
+desc   Creates a gallery of images from a namespace or RSS/ATOM feed, with reviewed community captions (based on the gallery plugin by Andreas Gohr)
 url    https://www.dokuwiki.org/plugin:gallery

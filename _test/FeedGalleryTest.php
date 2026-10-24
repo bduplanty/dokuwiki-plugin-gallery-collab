@@ -1,21 +1,21 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\test;
+namespace dokuwiki\plugin\gallerycollab\test;
 
-use dokuwiki\plugin\gallery\classes\FeedGallery;
-use dokuwiki\plugin\gallery\classes\Options;
+use dokuwiki\plugin\gallerycollab\classes\FeedGallery;
+use dokuwiki\plugin\gallerycollab\classes\Options;
 use DokuWikiTest;
 
 /**
  * Media Feed tests for the gallery plugin
  *
- * @group plugin_gallery
+ * @group plugin_gallerycollab
  * @group plugins
  * @group internet
  */
 class FeedGalleryTest extends DokuWikiTest
 {
-    protected $pluginsEnabled = ['gallery'];
+    protected $pluginsEnabled = ['gallerycollab'];
 
     public function testGetImages()
     {

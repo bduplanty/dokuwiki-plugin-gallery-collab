@@ -1,19 +1,20 @@
 <?php
 
-use dokuwiki\plugin\gallery\classes\Options;
+use dokuwiki\plugin\gallerycollab\classes\Options;
 
 /**
  * DokuWiki Plugin gallery (Syntax Component)
  *
  * @license GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @author  Andreas Gohr <andi@splitbrain.org>
+ * @author  Bruce DuPlanty <bduplanty@gmail.com>
  */
-class syntax_plugin_gallery_list extends syntax_plugin_gallery_main
+class syntax_plugin_gallerycollab_list extends syntax_plugin_gallerycollab_main
 {
     /** @inheritDoc */
     public function connectTo($mode)
     {
-        $this->Lexer->addSpecialPattern('<gallery.*?>.+?</gallery>', $mode, 'plugin_gallery_list');
+        $this->Lexer->addSpecialPattern('<gallery.*?>.+?</gallery>', $mode, 'plugin_gallerycollab_list');
     }
 
     /** @inheritDoc */

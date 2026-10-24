@@ -1,6 +1,6 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\classes;
+namespace dokuwiki\plugin\gallerycollab\classes;
 
 class XHTMLFormatter extends BasicFormatter
 {
@@ -49,7 +49,7 @@ class XHTMLFormatter extends BasicFormatter
     {
         if (count($pages) <= 1) return;
 
-        $plugin = plugin_load('syntax', 'gallery_main');
+        $plugin = plugin_load('syntax', 'gallerycollab_main');
 
         $this->renderer->doc .= '<div class="gallery-page-selector">';
         $this->renderer->doc .= '<span>' . $plugin->getLang('pages') . ' </span>';

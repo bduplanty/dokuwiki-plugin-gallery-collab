@@ -1,6 +1,6 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\classes;
+namespace dokuwiki\plugin\gallerycollab\classes;
 
 /**
  * A gallery created from a list of images

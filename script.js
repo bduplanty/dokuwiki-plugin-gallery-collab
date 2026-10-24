@@ -14,7 +14,7 @@ jQuery(function () {
         const glnk = document.createElement('a');
         const gbrk = document.createElement('br');
 
-        glnk.innerHTML = LANG.plugins.gallery.addgal;
+        glnk.innerHTML = LANG.plugins.gallerycollab.addgal;
         glnk.style.cursor = 'pointer';
         glnk.href = '#';
 

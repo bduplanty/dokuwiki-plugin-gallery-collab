@@ -1,13 +1,13 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\test;
+namespace dokuwiki\plugin\gallerycollab\test;
 
 use DokuWikiTest;
 
 /**
  * General tests for the gallery plugin
  *
- * @group plugin_gallery
+ * @group plugin_gallerycollab
  * @group plugins
  */
 class GeneralTest extends DokuWikiTest
@@ -31,7 +31,7 @@ class GeneralTest extends DokuWikiTest
         $this->assertArrayHasKey('desc', $info);
         $this->assertArrayHasKey('url', $info);
 
-        $this->assertEquals('gallery', $info['base']);
+        $this->assertEquals('gallerycollab', $info['base']);
         $this->assertRegExp('/^https?:\/\//', $info['url']);
         $this->assertTrue(mail_isvalid($info['email']));
         $this->assertRegExp('/^\d\d\d\d-\d\d-\d\d$/', $info['date']);

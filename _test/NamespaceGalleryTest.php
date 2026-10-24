@@ -1,20 +1,20 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\test;
+namespace dokuwiki\plugin\gallerycollab\test;
 
-use dokuwiki\plugin\gallery\classes\NamespaceGallery;
-use dokuwiki\plugin\gallery\classes\Options;
+use dokuwiki\plugin\gallerycollab\classes\NamespaceGallery;
+use dokuwiki\plugin\gallerycollab\classes\Options;
 use DokuWikiTest;
 
 /**
  * Namespace Gallery tests for the gallery plugin
  *
- * @group plugin_gallery
+ * @group plugin_gallerycollab
  * @group plugins
  */
 class NamespaceGalleryTest extends DokuWikiTest
 {
-    protected $pluginsEnabled = ['gallery'];
+    protected $pluginsEnabled = ['gallerycollab'];
 
     /**
      * Copy demo images to the media directory
