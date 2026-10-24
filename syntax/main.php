@@ -92,7 +92,8 @@ class syntax_plugin_gallerycollab_main extends SyntaxPlugin
                 $gallery = new NamespaceGallery($src, $options);
             }
 
-            $R->info['cache'] = $options->cache;
+            // may only disable caching, never re-enable it after ~~NOCACHE~~ or another plugin turned it off
+            if (!$options->cache) $R->info['cache'] = false;
             if ($mode == 'xhtml') {
                 $formatter = new XHTMLFormatter($R, $options);
             } else {
