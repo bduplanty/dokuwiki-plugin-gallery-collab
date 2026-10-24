@@ -32,8 +32,8 @@ class ListGallery extends AbstractGallery
                 continue;
             }
 
-            if ($title) $image->setTitle($title);
-            if ($desc) $image->setDescription($desc);
+            if ($title && !$image->isOverridden('title')) $image->setTitle($title);
+            if ($desc && !$image->isOverridden('description')) $image->setDescription($desc);
             $this->images[] = $image;
         }
     }

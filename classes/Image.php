@@ -19,13 +19,15 @@ class Image
     protected $created = 0;
     protected $modified = 0;
     protected $detaillink;
+    protected $overridden = ['title' => false, 'description' => false];
 
 
     /**
      * @param string $src local ID or external URL to image
+     * @param bool $applyOverride use the reviewed caption (if any) instead of the file's own metadata
      * @throws \Exception
      */
-    public function __construct($src)
+    public function __construct($src, $applyOverride = true)
     {
         $this->src = $src;
         if (preg_match('/^https:\/\//i', $src)) {
@@ -44,7 +46,37 @@ class Image
             $this->created = $jpegMeta->getField('Date.EarliestTime');
             $this->width = $jpegMeta->getField('File.Width');
             $this->height = $jpegMeta->getField('File.Height');
+
+            if ($applyOverride) $this->applyOverride();
         }
+    }
+
+    /**
+     * Replace title and description with the reviewed values from the caption store
+     */
+    protected function applyOverride()
+    {
+        $override = (new CaptionStore($this->src))->getOverride();
+        if (!$override) return;
+        if ($override['title'] !== '') {
+            $this->title = $override['title'];
+            $this->overridden['title'] = true;
+        }
+        if ($override['description'] !== '') {
+            $this->description = $override['description'];
+            $this->overridden['description'] = true;
+        }
+    }
+
+    /**
+     * Was the given field ('title' or 'description') replaced by a reviewed caption?
+     *
+     * @param string $field
+     * @return bool
+     */
+    public function isOverridden($field)
+    {
+        return $this->overridden[$field] ?? false;
     }
 
     public function isExternal()

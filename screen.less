@@ -95,3 +95,110 @@ div.plugin-gallery {
         }
     }
 }
+
+/** Collaborative captions */
+div.plugin-gallery figure.gallery-image {
+    position: relative;
+
+    button.gallery-collab-open {
+        position: absolute;
+        top: 0.5em;
+        right: 0.5em;
+        padding: 0 0.4em;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    span.gallery-collab-pending {
+        position: absolute;
+        top: 0.5em;
+        left: 0.5em;
+        padding: 0 0.4em;
+        font-size: 85%;
+        background: @ini_background_alt;
+        color: @ini_text;
+        border: 1px solid @ini_border;
+        border-radius: 1em;
+        pointer-events: none;
+    }
+
+    &:hover button.gallery-collab-open,
+    button.gallery-collab-open:focus {
+        opacity: 1;
+    }
+}
+
+.gallery-collab-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    background: rgba(0, 0, 0, 0.6);
+    overflow: auto;
+
+    .gallery-collab-dialog {
+        position: relative;
+        box-sizing: border-box;
+        max-width: 38em;
+        margin: 3em auto;
+        padding: 1em 1.5em;
+        background: @ini_background;
+        color: @ini_text;
+        border: 1px solid @ini_border;
+
+        .gallery-collab-close {
+            position: absolute;
+            top: 0.3em;
+            right: 0.5em;
+            cursor: pointer;
+        }
+
+        .gallery-collab-note {
+            font-weight: bold;
+        }
+
+        dl.gallery-collab-current dt {
+            font-weight: bold;
+            margin-top: 0.5em;
+        }
+
+        ul.gallery-collab-list {
+            list-style: none;
+            padding: 0;
+
+            li {
+                border: 1px solid @ini_border;
+                padding: 0.4em 0.6em;
+                margin-bottom: 0.4em;
+
+                .meta {
+                    font-size: 85%;
+                    opacity: 0.8;
+                }
+
+                .title {
+                    font-weight: bold;
+                }
+
+                &.status-rejected {
+                    opacity: 0.6;
+                }
+
+                .actions button {
+                    margin-right: 0.4em;
+                }
+            }
+        }
+
+        form.gallery-collab-form label {
+            display: block;
+            margin-bottom: 0.5em;
+
+            input,
+            textarea {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    }
+}

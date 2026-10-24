@@ -1,5 +1,6 @@
 /* DOKUWIKI:include_once simple-lightbox/simple-lightbox.js */
 /* DOKUWIKI:include script/prosemirror.js */
+/* DOKUWIKI:include script/collab.js */
 
 jQuery(function () {
     /**

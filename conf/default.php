@@ -15,3 +15,7 @@ $conf['cols'] = 0;
 
 $conf['sort'] = 'file';
 $conf['options'] = 'cache, crop, lightbox';
+
+$conf['contributor_groups'] = 'user';
+$conf['reviewer_groups'] = 'reviewer';
+$conf['write_iptc'] = 0;

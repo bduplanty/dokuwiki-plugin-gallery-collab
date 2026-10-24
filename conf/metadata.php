@@ -36,3 +36,7 @@ $meta['options'] = array('multicheckbox', '_choices' => array(
     'showname',
     'showtitle',
 ));
+
+$meta['contributor_groups'] = array('string');
+$meta['reviewer_groups'] = array('string');
+$meta['write_iptc'] = array('onoff');

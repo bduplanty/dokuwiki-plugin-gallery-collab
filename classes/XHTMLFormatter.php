@@ -136,6 +136,7 @@ class XHTMLFormatter extends BasicFormatter
         // figure properties
         $fig = [];
         $fig['class'] = 'gallery-image';
+        if (!$image->isExternal()) $fig['data-id'] = $image->getSrc();
         if ($this->options->align !== Options::ALIGN_FULL) {
             $fig['style'] = 'max-width: ' . $this->options->thumbnailWidth . 'px; ';
         }
