@@ -47,6 +47,29 @@ Add one entry per change, newest first, using this template:
   Details : what changed relative to the base behaviour
   Compat  : any syntax, config, or upstream-merge implications
 
+  ### 2026-10-25 - Search and sort toolbar
+  Files   : classes/Options.php, classes/XHTMLFormatter.php, script/toolbar.js, script.js, screen.less,
+            conf/metadata.php, lang/en/lang.php, action/prosemirror.php, GalleryNode.php,
+            script/prosemirror.js, _test/ToolbarTest.php
+  Purpose : let visitors find images and reorder a gallery without reloading the page
+  Details : - New boolean option "toolbar" (off by default): {{gallery>ns?toolbar}} or
+              <gallery toolbar>; "notoolbar" turns it off; it can also be a default in the
+              plugin's "options" setting and is a checkbox in the ProseMirror dialog.
+            - Search field: space separated terms, all must match (title, caption, file name);
+              case and accent insensitive; Esc clears it.
+            - Sort selector: default order, title, date, file name (natural number order, so
+              img_2 comes before img_10) plus an ascending/descending selector. "Date" is the
+              image's own date, else the file's modification date; images without a date always
+              come last.
+            - Works across all pages of a paginated gallery: the browser rebuilds the pages from
+              the filtered, sorted list. Shows "Showing N of M" and a no-match message.
+            - Lightbox next/previous follows the filtered, sorted order (SimpleLightbox refresh()).
+            - Server side: toolbar markup and per-figure data-title/-filename/-date/-search
+              attributes (only when the option is on). The toolbar is hidden until JavaScript runs.
+            - Titles and captions come from the approved captions, so searches match reviewed text.
+  Compat  : No change for galleries without the option. Wording is English only; other
+            languages fall back to English until lang/*/lang.php entries are added.
+
   ### 2026-10-24 - Archive export tool and backup guide
   Files   : tools/export_captions.py, tools/test_export_captions.py, docs/BACKUP_AND_ARCHIVE.md
   Purpose : long-term archive of the latest approved titles/captions, independent of the wiki, for

@@ -66,3 +66,17 @@ $lang['js']['collab_iptc_no']   = 'Saved. The JPEG file itself was not changed.'
 $lang['js']['collab_sent']      = 'Suggestion submitted for review.';
 $lang['js']['collab_pending_all'] = '%d suggestion(s) waiting for review';
 $lang['js']['collab_pending_own'] = '%d of your suggestion(s) waiting for review';
+
+$lang['toolbar_search']      = 'Search this gallery';
+$lang['toolbar_placeholder'] = 'Search title, caption or file name';
+$lang['toolbar_sortby']      = 'Sort by';
+$lang['toolbar_direction']   = 'Sort direction';
+$lang['sort_default']        = 'Default order';
+$lang['sort_title']          = 'Title';
+$lang['sort_date']           = 'Date';
+$lang['sort_file']           = 'File name';
+$lang['dir_asc']             = 'Ascending';
+$lang['dir_desc']            = 'Descending';
+$lang['toolbar_count']       = 'Showing %1 of %2';
+$lang['toolbar_none']        = 'No images match your search.';
+$lang['js']['label_toolbar'] = 'Show a search field and sort selectors above the gallery';

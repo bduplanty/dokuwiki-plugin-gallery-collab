@@ -35,6 +35,7 @@ $meta['options'] = array('multicheckbox', '_choices' => array(
     'showcaption',
     'showname',
     'showtitle',
+    'toolbar',
 ));
 
 $meta['contributor_groups'] = array('string');

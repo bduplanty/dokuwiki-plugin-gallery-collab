@@ -79,6 +79,37 @@ div.plugin-gallery {
         flex-wrap: wrap; // wrap page selector on new line
     }
 
+    .gallery-toolbar {
+        display: none; // hidden by default, shown by JS
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5em 1em;
+        margin-bottom: 1em;
+
+        .gallery-toolbar-search {
+            flex: 1 1 14em;
+
+            input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+
+        .gallery-toolbar-sort span {
+            margin-right: 0.3em;
+        }
+
+        .gallery-count {
+            opacity: 0.8;
+            font-size: 90%;
+        }
+    }
+
+    .gallery-none {
+        padding: 1em 0;
+        font-style: italic;
+    }
+
     .gallery-page-selector {
         padding-top: 0.4em;
         display: none; // hidden by default, shown by JS

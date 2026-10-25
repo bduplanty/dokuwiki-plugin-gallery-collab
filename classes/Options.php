@@ -28,6 +28,7 @@ class Options
     public $showcaption = false;
     public $showname = false;
     public $showtitle = false;
+    public $toolbar = false;
     public $reverse = false;
     public $cache = false;
     public $crop = false;

@@ -1,5 +1,6 @@
 /* DOKUWIKI:include_once simple-lightbox/simple-lightbox.js */
 /* DOKUWIKI:include script/prosemirror.js */
+/* DOKUWIKI:include script/toolbar.js */
 /* DOKUWIKI:include script/collab.js */
 
 jQuery(function () {
@@ -59,7 +60,7 @@ jQuery(function () {
     /**
      * Initialize the lightbox
      */
-    new SimpleLightbox("a.lightbox, a[rel^='lightbox']", {
+    window.galleryLightbox = new SimpleLightbox("a.lightbox, a[rel^='lightbox']", {
         sourceAttr: 'data-url',
         captionSelector: 'self',
         captionType: 'data',
