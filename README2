@@ -1,0 +1,171 @@
+gallery-collab: Changes from the Base Plugin
+=============================================
+
+This file tracks how this fork differs from the upstream gallery plugin
+(https://github.com/splitbrain/dokuwiki-plugin-gallery). The original README
+is kept unchanged; add an entry here whenever we extend or modify the code.
+
+Base
+----
+
+  Upstream project : splitbrain/dokuwiki-plugin-gallery
+  Base version     : 2026-09-02 (plugin.info.txt)
+  Base commit      : ddde5b9 (master, "Merge pull request #219 ...")
+
+
+Identity
+--------
+
+  Plugin name (base) : gallerycollab   (was: gallery) - install in lib/plugins/gallerycollab/
+  Author             : Bruce DuPlanty <bduplanty@gmail.com>; original gallery plugin by Andreas Gohr
+                       and contributors (credits and GPL 2 license kept in the source files)
+  Renamed            : PHP namespace dokuwiki\plugin\gallerycollab, plugin classes
+                       syntax_/action_plugin_gallerycollab_*, plugin_load() names, JS language/info keys
+                       (LANG.plugins.gallerycollab, JSINFO.plugins.gallerycollab), AJAX call names, tests.
+  Unchanged          : wiki syntax {{gallery>...}} and <gallery>, CSS classes (plugin-gallery,
+                       gallery-*), the ProseMirror node name, the data/gallery-collab sidecar folder.
+  plugin.info.txt url: still points at the upstream docs page - replace with this fork's URL.
+
+
+Summary of differences
+----------------------
+
+  Collaborative captions: users in contributor groups suggest titles/captions, users in reviewer
+  groups (and superusers) approve them. Approved captions override the image's own metadata when a
+  gallery is rendered; originals are never lost (sidecar history, optional IPTC write-back for JPEG).
+  Feed galleries are not supported.
+
+
+Change log
+----------
+
+Add one entry per change, newest first, using this template:
+
+  ### YYYY-MM-DD - Short title
+  Files   : path/to/file.php, ...
+  Purpose : why the change was made
+  Details : what changed relative to the base behaviour
+  Compat  : any syntax, config, or upstream-merge implications
+
+  ### 2026-10-25 - Tags (keywords): display, search and reviewed suggestions
+  Files   : classes/CaptionStore.php, classes/Image.php, classes/Options.php, classes/XHTMLFormatter.php,
+            action/collab.php, script/collab.js, script/toolbar.js, screen.less, conf/metadata.php,
+            lang/en/lang.php, action/prosemirror.php, GalleryNode.php, script/prosemirror.js,
+            tools/export_captions.py (1.1.0), tools/test_export_captions.py, docs/BACKUP_AND_ARCHIVE.md,
+            _test/TagsTest.php
+  Purpose : show and search the keywords of images and let contributors suggest tag changes that
+            reviewers approve
+  Details : - Image reads IPTC Keywords and XMP dc:subject from JPEGs (merged, no duplicates, cleaned
+              by CaptionStore::normalizeTags: trimmed, case-insensitive duplicates dropped, 50 chars
+              per tag, 30 tags per image).
+            - New boolean option "showtags" ({{gallery>ns?showtags}}): tags appear as pills under the
+              image, styled with the template's colours (@ini_* variables). Also a default-options
+              choice and an editor checkbox.
+            - The toolbar search matches tags. Terms in double quotes are exact phrases ("family
+              reunion"). With the toolbar, clicking a pill filters by that tag, clicking it again
+              clears the filter (keyboard: Enter/Space).
+            - Suggestions carry an optional complete tag list (null = no tag change). The dialog's
+              tags fields start with the current tags; only a real change (ignoring order and case)
+              counts. Reviewers approve a full list, which replaces the file's tags (an empty list
+              removes all). Sidecar fields: suggestion.tags, override.tags, history tags.
+            - Revert drops approved tags together with the approved title/caption.
+            - Approved tags are stored in the sidecar only; write_iptc does not write keywords.
+            - Export tool 1.1.0 adds tags, tags_source, embedded_tags and a Tags history column.
+  Compat  : Sidecars written before this change keep working (missing tags = no tag change).
+            Tags are not shown in the lightbox caption.
+
+  ### 2026-10-25 - Search and sort toolbar
+  Files   : classes/Options.php, classes/XHTMLFormatter.php, script/toolbar.js, script.js, screen.less,
+            conf/metadata.php, lang/en/lang.php, action/prosemirror.php, GalleryNode.php,
+            script/prosemirror.js, _test/ToolbarTest.php
+  Purpose : let visitors find images and reorder a gallery without reloading the page
+  Details : - New boolean option "toolbar" (off by default): {{gallery>ns?toolbar}} or
+              <gallery toolbar>; "notoolbar" turns it off; it can also be a default in the
+              plugin's "options" setting and is a checkbox in the ProseMirror dialog.
+            - Search field: space separated terms, all must match (title, caption, file name);
+              case and accent insensitive; Esc clears it.
+            - Sort selector: default order, title, date, file name (natural number order, so
+              img_2 comes before img_10) plus an ascending/descending selector. "Date" is the
+              image's own date, else the file's modification date; images without a date always
+              come last.
+            - Works across all pages of a paginated gallery: the browser rebuilds the pages from
+              the filtered, sorted list. Shows "Showing N of M" and a no-match message.
+            - Lightbox next/previous follows the filtered, sorted order (SimpleLightbox refresh()).
+            - Server side: toolbar markup and per-figure data-title/-filename/-date/-search
+              attributes (only when the option is on). The toolbar is hidden until JavaScript runs.
+            - Titles and captions come from the approved captions, so searches match reviewed text.
+            - The visitor's sort field and direction are remembered per gallery (page + gallery ID)
+              in the browser's localStorage and restored on the next visit. The search text is not
+              remembered. Unknown or damaged saved values and blocked storage are ignored; choosing
+              the default order forgets the saved choice.
+  Compat  : No change for galleries without the option. Wording is English only; other
+            languages fall back to English until lang/*/lang.php entries are added.
+
+  ### 2026-10-24 - Archive export tool and backup guide
+  Files   : tools/export_captions.py, tools/test_export_captions.py, docs/BACKUP_AND_ARCHIVE.md
+  Purpose : long-term archive of the latest approved titles/captions, independent of the wiki, for
+            images whose file is not updated (non-JPEG, or write_iptc off)
+  Details : Python 3.8+, standard library only. Runs locally against a downloaded data/media and
+            data/gallery-collab. Writes titlesandcaptions/<namespace>/<image>.md for every image,
+            index.html (browser view with filter) and index.json (for scripts). Never modifies inputs.
+  Compat  : stand-alone, not loaded by DokuWiki. The tools/ and docs/ folders are ignored by the plugin.
+
+  ### 2026-10-24 - Fix sidecar location with relative savedir
+  Files   : classes/CaptionStore.php
+  Purpose : with $conf['savedir'] = './data' the AJAX endpoint (lib/exe/) and doku.php used different
+            folders, so approved captions never showed in galleries
+  Details : CaptionStore::baseDir() anchors savedir at DOKU_INC
+  Compat  : sidecar files already written by the old code sit in <wiki>/lib/exe/data/gallery-collab/;
+            move that folder to <wiki>/data/gallery-collab/ (or re-approve the captions)
+
+  ### 2026-10-24 - Gallery no longer re-enables page caching
+  Files   : syntax/main.php
+  Purpose : ~~NOCACHE~~ on a page was overridden because the gallery set info['cache'] = true
+  Details : the gallery now only sets info['cache'] = false when the cache option is off
+  Compat  : galleries on pages with ~~NOCACHE~~ are no longer cached (intended)
+
+  ### 2026-10-24 - Rename plugin to gallerycollab
+  Files   : plugin.info.txt, all PHP/JS under action/, syntax/, classes/, script/, _test/, conf/, README
+  Purpose : make the fork installable next to / instead of the upstream gallery plugin
+  Details : see "Identity" above. Config is now stored under plugin»gallerycollab»*, so settings
+            from the old gallery plugin must be re-entered. Translations in lang/ need no change.
+  Compat  : Existing pages keep working (same syntax). DokuWiki autoloading requires the folder to be
+            named gallerycollab. Do not run this and the upstream gallery plugin together: both
+            claim {{gallery>}}.
+
+  ### 2026-10-24 - Collaborative captions (suggest / review)
+  Files   : action/collab.php, classes/CaptionStore.php, script/collab.js, script.js, screen.less,
+            classes/Image.php, classes/ListGallery.php, classes/XHTMLFormatter.php,
+            conf/default.php, conf/metadata.php, lang/en/lang.php, lang/en/settings.php,
+            _test/CaptionStoreTest.php
+  Purpose : let a defined group suggest title/caption text for images without touching the file's
+            EXIF/IPTC data, and let a reviewer group approve or edit what is displayed.
+  Details : - New config: contributor_groups (default "user"), reviewer_groups (default "reviewer"),
+              write_iptc (default off). Superusers are always reviewers.
+            - Suggestions and approved overrides are stored per image as JSON in
+              data/gallery-collab/<media id>.json (suggestions, override, history).
+            - Image applies the override on load; list-gallery inline titles do not replace it.
+            - AJAX endpoint ajax.php?call=gallery_collab (POST + sectok): get, suggest, approve,
+              reject, delete, revert. Contributors see only their own suggestions.
+            - A pencil button on each local thumbnail (shown to permitted users only) opens a dialog.
+            - XHTML figures carry data-id (local images only).
+            - Approving/reverting touches data/gallery-collab/.stamp; all rendered pages (xhtml cache)
+              depend on it (PARSER_CACHE_USE) so cached output is refreshed.
+            - Thumbnails show a badge (upper left) with the pending count: reviewers see all pending
+              suggestions, contributors their own. Loaded via AJAX op "pending" because the page
+              HTML is cached and identical for everyone; refreshed when the dialog closes.
+            - With write_iptc and a writable JPEG plus upload ACL, Iptc.Headline / Iptc.Caption are
+              also written. The sidecar override stays the source of truth.
+  Compat  : No syntax change. Feed galleries and external images are unaffected.
+            NOT YET RUN: no PHP/DokuWiki in the dev environment - tests and UI need a first run.
+
+
+Upstream merge notes
+--------------------
+
+Record files with heavy local modifications here so future merges from
+upstream can be handled carefully.
+
+  classes/Image.php (constructor + applyOverride), classes/ListGallery.php, classes/XHTMLFormatter.php
+  (data-id) and script.js (one include line) are small edits to upstream files. Everything else
+  collab-related is in new files.

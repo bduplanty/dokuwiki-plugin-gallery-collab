@@ -1,6 +1,6 @@
 <?php
 
-namespace dokuwiki\plugin\gallery;
+namespace dokuwiki\plugin\gallerycollab;
 
 use dokuwiki\plugin\prosemirror\parser\Node;
 
@@ -33,8 +33,8 @@ class GalleryNode extends Node
      */
     public function toSyntax()
     {
-        /** @var \action_plugin_gallery_prosemirror $action */
-        $action = plugin_load('action', 'gallery_prosemirror');
+        /** @var \action_plugin_gallerycollab_prosemirror $action */
+        $action = plugin_load('action', 'gallerycollab_prosemirror');
         $defaults = $action->getDefaults();
         $query = [];
         $attrs = $this->data['attrs'];
@@ -47,6 +47,8 @@ class GalleryNode extends Node
 
         $query[] = $this->extractFlagParam('showname', $attrs, $defaults);
         $query[] = $this->extractFlagParam('showtitle', $attrs, $defaults);
+        $query[] = $this->extractFlagParam('toolbar', $attrs, $defaults);
+        $query[] = $this->extractFlagParam('showtags', $attrs, $defaults);
         $query[] = $this->extractFlagParam('cache', $attrs, $defaults);
         $query[] = $this->extractFlagParam('crop', $attrs, $defaults);
         $query[] = $this->extractFlagParam('direct', $attrs, $defaults);

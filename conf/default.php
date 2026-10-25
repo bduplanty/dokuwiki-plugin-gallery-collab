@@ -4,6 +4,7 @@
  * Options for the gallery plugin
  *
  * @author Dmitry Baikov <dsbaikov@gmail.com>
+ * @author Bruce DuPlanty <bduplanty@gmail.com>
  */
 
 $conf['thumbnail_width'] = 150;
@@ -14,3 +15,7 @@ $conf['cols'] = 0;
 
 $conf['sort'] = 'file';
 $conf['options'] = 'cache, crop, lightbox';
+
+$conf['contributor_groups'] = 'user';
+$conf['reviewer_groups'] = 'reviewer';
+$conf['write_iptc'] = 0;

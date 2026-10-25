@@ -1,6 +1,6 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\classes;
+namespace dokuwiki\plugin\gallerycollab\classes;
 
 class Options
 {
@@ -28,6 +28,8 @@ class Options
     public $showcaption = false;
     public $showname = false;
     public $showtitle = false;
+    public $toolbar = false;
+    public $showtags = false;
     public $reverse = false;
     public $cache = false;
     public $crop = false;
@@ -44,7 +46,7 @@ class Options
     public function __construct()
     {
         // load options from config
-        $plugin = plugin_load('syntax', 'gallery_main');
+        $plugin = plugin_load('syntax', 'gallerycollab_main');
         $this->thumbnailWidth = $plugin->getConf('thumbnail_width');
         $this->thumbnailHeight = $plugin->getConf('thumbnail_height');
         $this->lightboxWidth = $plugin->getConf('image_width');

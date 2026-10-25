@@ -1,6 +1,6 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\classes;
+namespace dokuwiki\plugin\gallerycollab\classes;
 
 use dokuwiki\Utf8\PhpString;
 
@@ -19,13 +19,16 @@ class Image
     protected $created = 0;
     protected $modified = 0;
     protected $detaillink;
+    protected $tags = [];
+    protected $overridden = ['title' => false, 'description' => false, 'tags' => false];
 
 
     /**
      * @param string $src local ID or external URL to image
+     * @param bool $applyOverride use the reviewed caption (if any) instead of the file's own metadata
      * @throws \Exception
      */
-    public function __construct($src)
+    public function __construct($src, $applyOverride = true)
     {
         $this->src = $src;
         if (preg_match('/^https:\/\//i', $src)) {
@@ -44,7 +47,62 @@ class Image
             $this->created = $jpegMeta->getField('Date.EarliestTime');
             $this->width = $jpegMeta->getField('File.Width');
             $this->height = $jpegMeta->getField('File.Height');
+            $this->tags = $this->readTags($jpegMeta);
+
+            if ($applyOverride) $this->applyOverride();
         }
+    }
+
+    /**
+     * Read the keywords stored in the image: IPTC Keywords and XMP dc:subject
+     *
+     * Editors often write both, so the lists are merged without duplicates (ignoring case).
+     *
+     * @param \JpegMeta $jpegMeta
+     * @return string[]
+     */
+    protected function readTags(\JpegMeta $jpegMeta)
+    {
+        $found = [];
+        foreach ([$jpegMeta->getIPTCField('Keywords'), $jpegMeta->getXmpField('dc:subject')] as $field) {
+            if (!is_array($field)) $field = [$field];
+            array_walk_recursive($field, function ($value) use (&$found) {
+                if (is_string($value)) $found[] = $value;
+            });
+        }
+        return CaptionStore::normalizeTags($found);
+    }
+
+    /**
+     * Replace title, description and tags with the reviewed values from the caption store
+     */
+    protected function applyOverride()
+    {
+        $override = (new CaptionStore($this->src))->getOverride();
+        if (!$override) return;
+        if ($override['title'] !== '') {
+            $this->title = $override['title'];
+            $this->overridden['title'] = true;
+        }
+        if ($override['description'] !== '') {
+            $this->description = $override['description'];
+            $this->overridden['description'] = true;
+        }
+        if (is_array($override['tags'] ?? null)) {
+            $this->tags = CaptionStore::normalizeTags($override['tags']);
+            $this->overridden['tags'] = true;
+        }
+    }
+
+    /**
+     * Was the given field ('title', 'description' or 'tags') replaced by a reviewed caption?
+     *
+     * @param string $field
+     * @return bool
+     */
+    public function isOverridden($field)
+    {
+        return $this->overridden[$field] ?? false;
     }
 
     public function isExternal()
@@ -113,6 +171,22 @@ class Image
     public function setDescription($description)
     {
         $this->description = $description;
+    }
+
+    /**
+     * @return string[] the tags to show: approved ones if there are any, else the keywords of the file
+     */
+    public function getTags()
+    {
+        return $this->tags;
+    }
+
+    /**
+     * @param string[] $tags
+     */
+    public function setTags(array $tags)
+    {
+        $this->tags = $tags;
     }
 
     /**

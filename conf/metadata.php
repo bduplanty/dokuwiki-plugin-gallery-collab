@@ -4,9 +4,10 @@
  * Options for the gallery plugin
  *
  * @author Dmitry Baikov <dsbaikov@gmail.com>
+ * @author Bruce DuPlanty <bduplanty@gmail.com>
  */
 
-use dokuwiki\plugin\gallery\classes\Options;
+use dokuwiki\plugin\gallerycollab\classes\Options;
 
 $meta['thumbnail_width'] = array('numeric');
 $meta['thumbnail_height'] = array('numeric');
@@ -33,5 +34,11 @@ $meta['options'] = array('multicheckbox', '_choices' => array(
     'reverse',
     'showcaption',
     'showname',
+    'showtags',
     'showtitle',
+    'toolbar',
 ));
+
+$meta['contributor_groups'] = array('string');
+$meta['reviewer_groups'] = array('string');
+$meta['write_iptc'] = array('onoff');

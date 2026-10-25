@@ -1,6 +1,6 @@
 <?php
 
-namespace dokuwiki\plugin\gallery\classes;
+namespace dokuwiki\plugin\gallerycollab\classes;
 
 class XHTMLFormatter extends BasicFormatter
 {
@@ -29,7 +29,10 @@ class XHTMLFormatter extends BasicFormatter
                 break;
         }
 
+        if ($this->options->toolbar) $attr['data-paginate'] = (string)$this->options->paginate;
+
         $this->renderer->doc .= '<div ' . buildAttributes($attr, true) . '>';
+        if ($this->options->toolbar) $this->renderToolbar();
         $images = $gallery->getImages();
         $pages = $this->paginate($images);
         foreach ($pages as $page => $images) {
@@ -37,6 +40,58 @@ class XHTMLFormatter extends BasicFormatter
         }
         $this->renderPageSelector($pages);
         $this->renderer->doc .= '</div>';
+    }
+
+    /**
+     * Render the search field and sort selectors
+     *
+     * The toolbar is hidden until JavaScript shows it, because filtering and sorting happen in the browser.
+     *
+     * @return void
+     */
+    protected function renderToolbar()
+    {
+        $plugin = plugin_load('syntax', 'gallerycollab_main');
+        $id = 'gallery-search-' . $this->options->galleryID;
+
+        $toolbar = [
+            'class' => 'gallery-toolbar',
+            'role' => 'search',
+            'data-count' => $plugin->getLang('toolbar_count'),
+            'data-pages' => $plugin->getLang('pages'),
+        ];
+        $search = [
+            'type' => 'search',
+            'id' => $id,
+            'class' => 'edit gallery-search',
+            'placeholder' => $plugin->getLang('toolbar_placeholder'),
+            'autocomplete' => 'off',
+        ];
+
+        $html = '<div ' . buildAttributes($toolbar, true) . '>';
+        $html .= '<label class="gallery-toolbar-search"><span class="a11y">' .
+            hsc($plugin->getLang('toolbar_search')) . '</span>';
+        $html .= '<input ' . buildAttributes($search, true) . ' /></label>';
+
+        $html .= '<label class="gallery-toolbar-sort"><span>' . hsc($plugin->getLang('toolbar_sortby')) . '</span> ';
+        $html .= '<select class="edit gallery-sortby">';
+        foreach (['' => 'sort_default', 'title' => 'sort_title', 'date' => 'sort_date', 'file' => 'sort_file'] as $value => $lang) {
+            $html .= '<option value="' . hsc($value) . '">' . hsc($plugin->getLang($lang)) . '</option>';
+        }
+        $html .= '</select></label>';
+
+        $html .= '<label class="gallery-toolbar-dir"><span class="a11y">' .
+            hsc($plugin->getLang('toolbar_direction')) . '</span>';
+        $html .= '<select class="edit gallery-sortdir">';
+        $html .= '<option value="asc">' . hsc($plugin->getLang('dir_asc')) . '</option>';
+        $html .= '<option value="desc">' . hsc($plugin->getLang('dir_desc')) . '</option>';
+        $html .= '</select></label>';
+
+        $html .= '<span class="gallery-count" aria-live="polite"></span>';
+        $html .= '</div>';
+        $html .= '<div class="gallery-none" hidden>' . hsc($plugin->getLang('toolbar_none')) . '</div>';
+
+        $this->renderer->doc .= $html;
     }
 
     /**
@@ -49,7 +104,7 @@ class XHTMLFormatter extends BasicFormatter
     {
         if (count($pages) <= 1) return;
 
-        $plugin = plugin_load('syntax', 'gallery_main');
+        $plugin = plugin_load('syntax', 'gallerycollab_main');
 
         $this->renderer->doc .= '<div class="gallery-page-selector">';
         $this->renderer->doc .= '<span>' . $plugin->getLang('pages') . ' </span>';
@@ -136,6 +191,18 @@ class XHTMLFormatter extends BasicFormatter
         // figure properties
         $fig = [];
         $fig['class'] = 'gallery-image';
+        if (!$image->isExternal()) $fig['data-id'] = $image->getSrc();
+        if ($this->options->toolbar) {
+            // used by the browser side search and sort
+            $fig['data-title'] = $image->getTitle();
+            $fig['data-filename'] = $image->getFilename();
+            $fig['data-date'] = (string)(int)($image->getCreated() ?: $image->getModified());
+            // one field per line, so a quoted search phrase cannot match across two tags
+            $fig['data-search'] = implode("\n", array_merge(
+                [$image->getTitle(), $image->getDescription(), $image->getFilename()],
+                $image->getTags()
+            ));
+        }
         if ($this->options->align !== Options::ALIGN_FULL) {
             $fig['style'] = 'max-width: ' . $this->options->thumbnailWidth . 'px; ';
         }
@@ -170,6 +237,14 @@ class XHTMLFormatter extends BasicFormatter
                 $html .= '<a ' . buildAttributes($a) . '>' . hsc($image->getFilename()) . '</a>';
             }
             $html .= '</figcaption>';
+        }
+
+        if ($this->options->showtags && $image->getTags()) {
+            $html .= '<ul class="gallery-tags">';
+            foreach ($image->getTags() as $tag) {
+                $html .= '<li class="gallery-tag" data-tag="' . hsc($tag) . '">' . hsc($tag) . '</li>';
+            }
+            $html .= '</ul>';
         }
 
         $html .= '</figure>';

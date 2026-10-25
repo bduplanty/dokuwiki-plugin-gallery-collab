@@ -79,6 +79,37 @@ div.plugin-gallery {
         flex-wrap: wrap; // wrap page selector on new line
     }
 
+    .gallery-toolbar {
+        display: none; // hidden by default, shown by JS
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5em 1em;
+        margin-bottom: 1em;
+
+        .gallery-toolbar-search {
+            flex: 1 1 14em;
+
+            input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+
+        .gallery-toolbar-sort span {
+            margin-right: 0.3em;
+        }
+
+        .gallery-count {
+            opacity: 0.8;
+            font-size: 90%;
+        }
+    }
+
+    .gallery-none {
+        padding: 1em 0;
+        font-style: italic;
+    }
+
     .gallery-page-selector {
         padding-top: 0.4em;
         display: none; // hidden by default, shown by JS
@@ -92,6 +123,150 @@ div.plugin-gallery {
                 border: 1px solid @ini_border;
                 border-radius: 0.4em;
             }
+        }
+    }
+}
+
+/** Collaborative captions */
+div.plugin-gallery figure.gallery-image {
+    position: relative;
+
+    button.gallery-collab-open {
+        position: absolute;
+        top: 0.5em;
+        right: 0.5em;
+        padding: 0 0.4em;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    span.gallery-collab-pending {
+        position: absolute;
+        top: 0.5em;
+        left: 0.5em;
+        padding: 0 0.4em;
+        font-size: 85%;
+        background: @ini_background_alt;
+        color: @ini_text;
+        border: 1px solid @ini_border;
+        border-radius: 1em;
+        pointer-events: none;
+    }
+
+    &:hover button.gallery-collab-open,
+    button.gallery-collab-open:focus {
+        opacity: 1;
+    }
+}
+
+.gallery-collab-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    background: rgba(0, 0, 0, 0.6);
+    overflow: auto;
+
+    .gallery-collab-dialog {
+        position: relative;
+        box-sizing: border-box;
+        max-width: 38em;
+        margin: 3em auto;
+        padding: 1em 1.5em;
+        background: @ini_background;
+        color: @ini_text;
+        border: 1px solid @ini_border;
+
+        .gallery-collab-close {
+            position: absolute;
+            top: 0.3em;
+            right: 0.5em;
+            cursor: pointer;
+        }
+
+        .gallery-collab-note {
+            font-weight: bold;
+        }
+
+        dl.gallery-collab-current dt {
+            font-weight: bold;
+            margin-top: 0.5em;
+        }
+
+        ul.gallery-collab-list {
+            list-style: none;
+            padding: 0;
+
+            li {
+                border: 1px solid @ini_border;
+                padding: 0.4em 0.6em;
+                margin-bottom: 0.4em;
+
+                .meta {
+                    font-size: 85%;
+                    opacity: 0.8;
+                }
+
+                .title {
+                    font-weight: bold;
+                }
+
+                &.status-rejected {
+                    opacity: 0.6;
+                }
+
+                .actions button {
+                    margin-right: 0.4em;
+                }
+            }
+        }
+
+        form.gallery-collab-form label {
+            display: block;
+            margin-bottom: 0.5em;
+
+            input,
+            textarea {
+                display: block;
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    }
+}
+
+/** Tag pills */
+div.plugin-gallery {
+    ul.gallery-tags {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.3em;
+        list-style: none;
+        margin: 0.4em 0 0;
+        padding: 0;
+
+        li.gallery-tag {
+            margin: 0;
+            padding: 0 0.7em;
+            font-size: 80%;
+            line-height: 1.7;
+            color: @ini_text_neu;
+            background: @ini_background_alt;
+            border: 1px solid @ini_border;
+            border-radius: 1em;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    // pills turn into filter buttons once the search toolbar is active
+    &.gallery-filterable ul.gallery-tags li.gallery-tag {
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+            color: @ini_link;
+            border-color: @ini_link;
+            outline: none;
         }
     }
 }
