@@ -15,18 +15,26 @@ def iim(record, dataset, value):
     return b"\x1c" + bytes([record, dataset]) + len(raw).to_bytes(2, "big") + raw
 
 
-def make_jpeg(path, headline=None, caption=None):
-    """Smallest JPEG-like file that carries IPTC data in an APP13 Photoshop block."""
+def make_jpeg(path, headline=None, caption=None, keywords=(), xmp_subjects=()):
+    """Smallest JPEG-like file that carries IPTC data in an APP13 Photoshop block (and optional XMP)."""
     data = b"\x1c\x01Z\x00\x03\x1b%G"  # 1:90 coded character set = UTF-8
     if headline:
         data += iim(2, 105, headline)
     if caption:
         data += iim(2, 120, caption)
+    for keyword in keywords:
+        data += iim(2, 25, keyword)
     if len(data) % 2:
         data += b"\x00"
     resource = b"8BIM" + b"\x04\x04" + b"\x00\x00" + len(data).to_bytes(4, "big") + data
     payload = b"Photoshop 3.0\x00" + resource
     segment = b"\xff\xed" + (len(payload) + 2).to_bytes(2, "big") + payload
+    if xmp_subjects:
+        items = "".join(f"<rdf:li>{s}</rdf:li>" for s in xmp_subjects)
+        xmp = (b"http://ns.adobe.com/xap/1.0/\x00" +
+               f"<x:xmpmeta><rdf:RDF><rdf:Description><dc:subject><rdf:Bag>{items}</rdf:Bag></dc:subject>"
+               "</rdf:Description></rdf:RDF></x:xmpmeta>".encode("utf-8"))
+        segment += b"\xff\xe1" + (len(xmp) + 2).to_bytes(2, "big") + xmp
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"\xff\xd8" + segment + b"\xff\xd9")
 
@@ -48,7 +56,8 @@ class ExportTest(unittest.TestCase):
         self.sidecars = self.data / "gallery-collab"
         self.out = root / "out"
 
-        make_jpeg(self.media / "family" / "bar_1.jpeg", headline="Original Tavern", caption="Original caption ü")
+        make_jpeg(self.media / "family" / "bar_1.jpeg", headline="Original Tavern", caption="Original caption ü",
+                  keywords=["Tavern", "family"], xmp_subjects=["Family", "bar &amp; grill"])
         make_jpeg(self.media / "family" / "plain.jpg")
         (self.media / "family" / "scan.png").write_bytes(b"\x89PNG")
         (self.media / "family" / "scan.jpg").write_bytes(b"not really a jpeg")  # stem collision
@@ -57,10 +66,12 @@ class ExportTest(unittest.TestCase):
         make_sidecar(self.sidecars, "family:bar_1.jpeg",
                      suggestions=[{"id": "x", "status": "pending", "title": "NOPE", "description": "NOPE"}],
                      override={"title": "Approved Title", "description": "Approved caption | pipe",
-                               "by": "reviewer", "time": 1792867525},
+                               "tags": ["Approved tag", "family"], "by": "reviewer", "time": 1792867525},
                      history=[{"time": 1792867525, "by": "reviewer", "suggestion": "",
-                               "previous": {"title": "Original Tavern", "description": "Original caption ü"},
-                               "new": {"title": "Approved Title", "description": "Approved caption | pipe"}}])
+                               "previous": {"title": "Original Tavern", "description": "Original caption ü",
+                                            "tags": ["Tavern", "family", "bar & grill"]},
+                               "new": {"title": "Approved Title", "description": "Approved caption | pipe",
+                                       "tags": ["Approved tag", "family"]}}])
         make_sidecar(self.sidecars, "family:gone.jpg", override={"title": "t", "description": "d"})
 
     def run_export(self, *extra):
@@ -83,9 +94,17 @@ class ExportTest(unittest.TestCase):
         self.assertIn("Approved caption \\| pipe", md)  # escaped inside the history table
         self.assertNotIn("NOPE", md)  # pending suggestions are not exported
 
+        # approved tags replace the file's tags; the file's own tags are kept for comparison
+        self.assertIn('tags: ["Approved tag", "family"]', md)
+        self.assertIn('tags_source: "approved"', md)
+        self.assertIn("**Tags:** Approved tag, family", md)
+        self.assertIn('embedded_tags: ["Tavern", "family", "bar & grill"]', md)  # IPTC + XMP, no duplicates
+
         # no sidecar: embedded metadata, then file name
         plain = (self.out / "family" / "plain.md").read_text(encoding="utf-8")
         self.assertIn("# Plain", plain)
+        self.assertIn('tags: []', plain)
+        self.assertIn('tags_source: "none"', plain)
         self.assertIn('title_source: "filename"', plain)
 
         # stems collide -> full file names
@@ -97,11 +116,16 @@ class ExportTest(unittest.TestCase):
         self.assertEqual(4, index["count"])
         bar = next(i for i in index["images"] if i["id"] == "family:bar_1.jpeg")
         self.assertEqual("approved", bar["title_source"])
+        self.assertEqual(["Approved tag", "family"], bar["tags"])
+        self.assertEqual(["Approved tag", "family"], bar["history"][0]["tags"])
+        self.assertEqual(["Tavern", "family", "bar & grill"], bar["history"][0]["previous_tags"])
         self.assertEqual("../data/media/family/bar_1.jpeg", bar["image"])
         self.assertEqual("family/bar_1.md", bar["markdown"])
 
         page = (self.out / "index.html").read_text(encoding="utf-8")
         self.assertIn("Approved Title", page)
+        self.assertIn("<li>Approved tag</li>", page)
+        self.assertIn("approved tag", page.split('data-search="')[1].split('"')[0])  # searchable
         self.assertIn('src="../data/media/family/bar_1.jpeg"', page)
 
     def test_embedded_metadata_used_without_sidecar(self):
@@ -111,6 +135,8 @@ class ExportTest(unittest.TestCase):
         self.assertIn('title: "Original Tavern"', md)
         self.assertIn('caption: "Original caption ü"', md)
         self.assertIn('caption_source: "embedded"', md)
+        self.assertIn('tags: ["Tavern", "family", "bar & grill"]', md)
+        self.assertIn('tags_source: "embedded"', md)
 
     def test_rerun_is_idempotent_and_dry_run_writes_nothing(self):
         code, out, _ = self.run_export("--dry-run")

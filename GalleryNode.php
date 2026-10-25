@@ -48,6 +48,7 @@ class GalleryNode extends Node
         $query[] = $this->extractFlagParam('showname', $attrs, $defaults);
         $query[] = $this->extractFlagParam('showtitle', $attrs, $defaults);
         $query[] = $this->extractFlagParam('toolbar', $attrs, $defaults);
+        $query[] = $this->extractFlagParam('showtags', $attrs, $defaults);
         $query[] = $this->extractFlagParam('cache', $attrs, $defaults);
         $query[] = $this->extractFlagParam('crop', $attrs, $defaults);
         $query[] = $this->extractFlagParam('direct', $attrs, $defaults);

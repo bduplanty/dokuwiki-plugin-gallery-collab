@@ -47,6 +47,33 @@ Add one entry per change, newest first, using this template:
   Details : what changed relative to the base behaviour
   Compat  : any syntax, config, or upstream-merge implications
 
+  ### 2026-10-25 - Tags (keywords): display, search and reviewed suggestions
+  Files   : classes/CaptionStore.php, classes/Image.php, classes/Options.php, classes/XHTMLFormatter.php,
+            action/collab.php, script/collab.js, script/toolbar.js, screen.less, conf/metadata.php,
+            lang/en/lang.php, action/prosemirror.php, GalleryNode.php, script/prosemirror.js,
+            tools/export_captions.py (1.1.0), tools/test_export_captions.py, docs/BACKUP_AND_ARCHIVE.md,
+            _test/TagsTest.php
+  Purpose : show and search the keywords of images and let contributors suggest tag changes that
+            reviewers approve
+  Details : - Image reads IPTC Keywords and XMP dc:subject from JPEGs (merged, no duplicates, cleaned
+              by CaptionStore::normalizeTags: trimmed, case-insensitive duplicates dropped, 50 chars
+              per tag, 30 tags per image).
+            - New boolean option "showtags" ({{gallery>ns?showtags}}): tags appear as pills under the
+              image, styled with the template's colours (@ini_* variables). Also a default-options
+              choice and an editor checkbox.
+            - The toolbar search matches tags. Terms in double quotes are exact phrases ("family
+              reunion"). With the toolbar, clicking a pill filters by that tag, clicking it again
+              clears the filter (keyboard: Enter/Space).
+            - Suggestions carry an optional complete tag list (null = no tag change). The dialog's
+              tags fields start with the current tags; only a real change (ignoring order and case)
+              counts. Reviewers approve a full list, which replaces the file's tags (an empty list
+              removes all). Sidecar fields: suggestion.tags, override.tags, history tags.
+            - Revert drops approved tags together with the approved title/caption.
+            - Approved tags are stored in the sidecar only; write_iptc does not write keywords.
+            - Export tool 1.1.0 adds tags, tags_source, embedded_tags and a Tags history column.
+  Compat  : Sidecars written before this change keep working (missing tags = no tag change).
+            Tags are not shown in the lightbox caption.
+
   ### 2026-10-25 - Search and sort toolbar
   Files   : classes/Options.php, classes/XHTMLFormatter.php, script/toolbar.js, script.js, screen.less,
             conf/metadata.php, lang/en/lang.php, action/prosemirror.php, GalleryNode.php,

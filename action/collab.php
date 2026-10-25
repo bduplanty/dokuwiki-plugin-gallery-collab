@@ -102,7 +102,12 @@ class action_plugin_gallerycollab_collab extends ActionPlugin
 
             case 'suggest':
                 try {
-                    $store->addSuggestion($user, $INPUT->str('title'), $INPUT->str('description'));
+                    $store->addSuggestion(
+                        $user,
+                        $INPUT->str('title'),
+                        $INPUT->str('description'),
+                        $this->changedTags($id, $INPUT)
+                    );
                 } catch (\RuntimeException $e) {
                     throw new \RuntimeException($this->getLang('err_' . $e->getMessage()), 400);
                 }
@@ -125,10 +130,11 @@ class action_plugin_gallerycollab_collab extends ActionPlugin
                 $this->requireReviewer();
                 $title = $INPUT->str('title');
                 $description = $INPUT->str('description');
-                if (trim($title) === '' && trim($description) === '') {
+                $tags = $this->changedTags($id, $INPUT);
+                if (trim($title) === '' && trim($description) === '' && $tags === null) {
                     throw new \RuntimeException($this->getLang('err_empty'), 400);
                 }
-                $store->approve($title, $description, $user, $this->currentCaption($id), $sid);
+                $store->approve($title, $description, $user, $this->currentCaption($id), $sid, $tags);
                 CaptionStore::touchStamp();
                 $result = $this->state($id, $user);
                 $result['iptc'] = $this->writeIptc($id, $title, $description);
@@ -198,8 +204,16 @@ class action_plugin_gallerycollab_collab extends ActionPlugin
         return [
             'id' => $id,
             'name' => $current->getFilename(),
-            'current' => ['title' => $current->getTitle(), 'description' => $current->getDescription()],
-            'original' => ['title' => $original->getTitle(), 'description' => $original->getDescription()],
+            'current' => [
+                'title' => $current->getTitle(),
+                'description' => $current->getDescription(),
+                'tags' => $current->getTags(),
+            ],
+            'original' => [
+                'title' => $original->getTitle(),
+                'description' => $original->getDescription(),
+                'tags' => $original->getTags(),
+            ],
             'overridden' => $store->getOverride() !== null,
             'suggestions' => array_values($suggestions),
         ];
@@ -214,7 +228,29 @@ class action_plugin_gallerycollab_collab extends ActionPlugin
     protected function currentCaption($id)
     {
         $current = new Image($id);
-        return ['title' => $current->getTitle(), 'description' => $current->getDescription()];
+        return [
+            'title' => $current->getTitle(),
+            'description' => $current->getDescription(),
+            'tags' => $current->getTags(),
+        ];
+    }
+
+    /**
+     * The tag list sent with a request, unless it is the same as the tags shown now
+     *
+     * The dialog sends the complete list, prefilled with the current tags. Only a real change counts as a
+     * tag suggestion or approval.
+     *
+     * @param string $id
+     * @param \dokuwiki\Input\Input $INPUT
+     * @return string[]|null the cleaned list, or null if the request does not change the tags
+     */
+    protected function changedTags($id, $INPUT)
+    {
+        if (!$INPUT->has('tags')) return null;
+        $tags = CaptionStore::normalizeTags($INPUT->str('tags'));
+        $current = (new Image($id))->getTags();
+        return CaptionStore::sameTags($tags, $current) ? null : $tags;
     }
 
     /**

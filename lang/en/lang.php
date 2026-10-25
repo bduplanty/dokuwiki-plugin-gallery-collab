@@ -37,7 +37,7 @@ $lang['js']['label_sort_exif_title'] = 'Sort images by EXIF title';
 
 $lang['err_perm']     = 'You are not allowed to do this.';
 $lang['err_notfound'] = 'Image not found.';
-$lang['err_empty']    = 'Please suggest a title or a caption.';
+$lang['err_empty']    = 'Please suggest a title, a caption or a change to the tags.';
 $lang['err_limit']    = 'You have too many pending suggestions for this image.';
 $lang['err_token']    = 'Security token mismatch, please reload the page.';
 
@@ -80,3 +80,8 @@ $lang['dir_desc']            = 'Descending';
 $lang['toolbar_count']       = 'Showing %1 of %2';
 $lang['toolbar_none']        = 'No images match your search.';
 $lang['js']['label_toolbar'] = 'Show a search field and sort selectors above the gallery';
+
+$lang['js']['label_showtags']  = 'Show the keywords (tags) of each image as pills below it';
+$lang['js']['collab_tags']     = 'Tags';
+$lang['js']['collab_f_tags']   = 'Tags (separated by commas)';
+$lang['js']['collab_notags']   = '(no tags)';

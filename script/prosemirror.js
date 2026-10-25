@@ -84,6 +84,13 @@ jQuery(document).on('PROSEMIRROR_API_INITIALIZED', function () {
                 checked: attrs['showtitle'],
             },
             {
+                name: 'showtags',
+                label: LANG.plugins.gallerycollab.label_showtags,
+                type: 'checkbox',
+                value: '1',
+                checked: attrs['showtags'],
+            },
+            {
                 name: 'toolbar',
                 label: LANG.plugins.gallerycollab.label_toolbar,
                 type: 'checkbox',

@@ -30,6 +30,14 @@ jQuery(function () {
         alert(msg);
     }
 
+    /**
+     * @param {string[]|undefined} tags
+     * @returns {string} comma separated tags, or the "no tags" wording
+     */
+    function tagText(tags) {
+        return tags && tags.length ? tags.join(', ') : L.collab_notags;
+    }
+
     function text(tag, cls, content) {
         return jQuery('<' + tag + '>').addClass(cls || '').text(content);
     }
@@ -97,6 +105,7 @@ jQuery(function () {
                 $cur.append(text('dt', '', label));
                 $cur.append(text('dd', '', caption.title || L.collab_nocaption));
                 $cur.append(text('dd', '', caption.description || L.collab_nocaption));
+                $cur.append(text('dd', 'gallery-collab-tags', L.collab_tags + ': ' + tagText(caption.tags)));
             };
             show(L.collab_current, state.current);
             if (state.overridden) show(L.collab_original, state.original);
@@ -113,6 +122,7 @@ jQuery(function () {
                     s.user + ' · ' + new Date(s.time * 1000).toLocaleString() + ' · ' + L['collab_' + s.status]));
                 if (s.title) $li.append(text('div', 'title', s.title));
                 if (s.description) $li.append(text('div', 'desc', s.description));
+                if (s.tags) $li.append(text('div', 'tags', L.collab_tags + ': ' + tagText(s.tags)));
 
                 const $actions = jQuery('<div class="actions">').appendTo($li);
                 const act = function (label, handler) {
@@ -127,6 +137,7 @@ jQuery(function () {
                     act(L.collab_use, function () {
                         $reviewForm.find('[name=title]').val(s.title || state.current.title);
                         $reviewForm.find('[name=description]').val(s.description || state.current.description);
+                        $reviewForm.find('[name=tags]').val((s.tags || state.current.tags || []).join(', '));
                         $reviewForm.data('sid', s.id).find('textarea').focus();
                     });
                     act(L.collab_reject, function () {
@@ -151,6 +162,9 @@ jQuery(function () {
                     .append(jQuery('<textarea name="description" class="edit" rows="3" maxlength="2000">')
                         .val(values.description))
                     .appendTo($f);
+                jQuery('<label>').text(L.collab_f_tags)
+                    .append(jQuery('<input type="text" name="tags" class="edit">').val((values.tags || []).join(', ')))
+                    .appendTo($f);
                 jQuery('<button type="submit" class="button">').text(submitLabel).appendTo($f);
                 $f.on('submit', function (e) {
                     e.preventDefault();
@@ -164,7 +178,8 @@ jQuery(function () {
                     call('approve', id, {
                         sid: $f.data('sid') || '',
                         title: $f.find('[name=title]').val(),
-                        description: $f.find('[name=description]').val()
+                        description: $f.find('[name=description]').val(),
+                        tags: $f.find('[name=tags]').val()
                     }).done(function (st) {
                         render(st, st.iptc ? L.collab_iptc_ok : L.collab_iptc_no);
                     }).fail(fail);
@@ -178,10 +193,12 @@ jQuery(function () {
                 }
             }
 
-            form(L.collab_suggest, L.collab_submit, {title: '', description: ''}, function ($f) {
+            // title and caption start empty (an empty field means "no change"); the tags start with the current ones
+            form(L.collab_suggest, L.collab_submit, {title: '', description: '', tags: state.current.tags}, function ($f) {
                 call('suggest', id, {
                     title: $f.find('[name=title]').val(),
-                    description: $f.find('[name=description]').val()
+                    description: $f.find('[name=description]').val(),
+                    tags: $f.find('[name=tags]').val()
                 }).done(function (st) {
                     render(st, L.collab_sent);
                 }).fail(fail);

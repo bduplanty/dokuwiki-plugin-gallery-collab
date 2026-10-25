@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Archive the latest approved titles and captions of a DokuWiki gallerycollab wiki.
+"""Archive the latest approved titles, captions and tags of a DokuWiki gallerycollab wiki.
 
 Reads a downloaded copy of the wiki's media folder and of the plugin's sidecar folder
 (data/gallery-collab) and writes, for every image:
 
-  * a Markdown file with the same name as the image (extension .md) holding the title and
-    caption that the gallery shows, plus where they came from and how they changed,
+  * a Markdown file with the same name as the image (extension .md) holding the title, caption
+    and tags that the gallery shows, plus where they came from and how they changed,
   * one index.html (local viewing in a browser) and one index.json (for other scripts).
 
 Nothing in the media or sidecar folders is ever modified.
@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 from urllib.parse import quote
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp")
 DEFAULT_OUT = "titlesandcaptions"
@@ -110,16 +110,28 @@ def _clean(text):
     return re.sub(r"\s+", " ", text or "").strip()
 
 
+def clean_tags(tags):
+    """Trim tags, collapse whitespace and drop empty ones and duplicates (ignoring case)."""
+    result, seen = [], set()
+    for tag in tags or []:
+        tag = _clean(tag if isinstance(tag, str) else "")
+        if tag and tag.casefold() not in seen:
+            seen.add(tag.casefold())
+            result.append(tag)
+    return result
+
+
 def read_embedded(path):
-    """Return the title and caption embedded in an image file, like the plugin does.
+    """Return the title, caption and tags embedded in an image file, like the plugin does.
 
     The title is the first non-empty of IPTC Headline, IPTC Caption and XMP dc:title (the same
-    order DokuWiki's JpegMeta uses); the caption is the IPTC Caption. Only JPEG files carry
-    this data here, all other formats return empty strings.
+    order DokuWiki's JpegMeta uses); the caption is the IPTC Caption; the tags are the IPTC
+    Keywords merged with the XMP dc:subject list. Only JPEG files carry this data here, all other
+    formats return empty values.
 
-    :return: dict with 'title' and 'caption'
+    :return: dict with 'title', 'caption' (strings) and 'tags' (list)
     """
-    result = {"title": "", "caption": ""}
+    result = {"title": "", "caption": "", "tags": []}
     if path.suffix.lower() not in (".jpg", ".jpeg"):
         return result
     try:
@@ -129,6 +141,7 @@ def read_embedded(path):
         return result
 
     headline = caption = xmp_title = ""
+    keywords = []
     for marker, segment in _jpeg_segments(data):
         if marker == 0xED:
             for block in _photoshop_iptc_blocks(segment):
@@ -138,14 +151,19 @@ def read_embedded(path):
                     headline = _clean(_decode(iim[(2, 105)][0], utf8))
                 if (2, 120) in iim:
                     caption = _clean(_decode(iim[(2, 120)][0], utf8))
+                keywords += [_decode(raw, utf8) for raw in iim.get((2, 25), [])]
         elif marker == 0xE1 and segment.startswith(b"http://ns.adobe.com/xap/1.0/\x00"):
             xmp = segment[len(b"http://ns.adobe.com/xap/1.0/\x00"):].decode("utf-8", errors="replace")
             found = re.search(r"<dc:title>.*?<rdf:li[^>]*>(.*?)</rdf:li>", xmp, re.S)
             if found:
                 xmp_title = _clean(html.unescape(found.group(1)))
+            bag = re.search(r"<dc:subject>.*?<rdf:Bag>(.*?)</rdf:Bag>", xmp, re.S)
+            if bag:
+                keywords += [html.unescape(item) for item in re.findall(r"<rdf:li[^>]*>(.*?)</rdf:li>", bag.group(1), re.S)]
 
     result["caption"] = caption
     result["title"] = headline or caption or xmp_title
+    result["tags"] = clean_tags(keywords)
     return result
 
 
@@ -210,6 +228,7 @@ def build_record(media_id, path, sidecars_dir):
     title, title_source = "", "filename"
     caption, caption_source = "", "none"
     embedded_title = embedded["title"] if embedded["title"] != filename else ""
+    tags, tags_source = embedded["tags"], ("embedded" if embedded["tags"] else "none")
 
     if embedded_title:
         title, title_source = embedded_title, "embedded"
@@ -220,6 +239,8 @@ def build_record(media_id, path, sidecars_dir):
             title, title_source = _clean(override["title"]), "approved"
         if _clean(override.get("description")):
             caption, caption_source = _clean(override["description"]), "approved"
+    if override and isinstance(override.get("tags"), list):
+        tags, tags_source = clean_tags(override["tags"]), "approved"
     if not title:
         title = title_from_filename(filename)
 
@@ -235,8 +256,10 @@ def build_record(media_id, path, sidecars_dir):
             "action": "approved" if new else "reverted",
             "title": (new or {}).get("title") or "",
             "caption": (new or {}).get("description") or "",
+            "tags": clean_tags((new or {}).get("tags")),
             "previous_title": previous.get("title") or "",
             "previous_caption": previous.get("description") or "",
+            "previous_tags": clean_tags(previous.get("tags")),
         })
 
     return {
@@ -247,8 +270,11 @@ def build_record(media_id, path, sidecars_dir):
         "caption": caption,
         "title_source": title_source,
         "caption_source": caption_source,
+        "tags": tags,
+        "tags_source": tags_source,
         "embedded_title": embedded_title,
         "embedded_caption": embedded["caption"],
+        "embedded_tags": embedded["tags"],
         "approved_by": (override or {}).get("by") or "",
         "approved_at": iso((override or {}).get("time")) if override else "",
         "history": history,
@@ -281,27 +307,33 @@ def _cell(text):
 def render_markdown(record):
     q = lambda value: json.dumps(value, ensure_ascii=False)  # JSON strings are valid YAML
     lines = ["---"]
-    for key in ("id", "filename", "namespace", "title", "caption", "title_source", "caption_source",
-                "embedded_title", "embedded_caption", "approved_by", "approved_at"):
+    for key in ("id", "filename", "namespace", "title", "caption", "tags", "title_source", "caption_source",
+                "tags_source", "embedded_title", "embedded_caption", "embedded_tags", "approved_by", "approved_at"):
         lines.append(f"{key}: {q(record[key])}")
     lines += ["---", "", f"# {record['title']}", ""]
-    lines += [record["caption"] or "*(no caption)*", "", "## Details", ""]
+    lines += [record["caption"] or "*(no caption)*", ""]
+    if record["tags"]:
+        lines += ["**Tags:** " + ", ".join(record["tags"]), ""]
+    lines += ["## Details", ""]
     lines.append(f"- **Image file:** `{record['filename']}`")
     lines.append(f"- **Media ID:** `{record['id']}`")
     lines.append(f"- **Title source:** {record['title_source']}")
     lines.append(f"- **Caption source:** {record['caption_source']}")
+    lines.append(f"- **Tags source:** {record['tags_source']}")
     if record["approved_by"] or record["approved_at"]:
         lines.append(f"- **Approved by:** {record['approved_by'] or 'unknown'} ({record['approved_at'] or 'unknown date'})")
     lines.append(f"- **Title in the file itself:** {record['embedded_title'] or '*(none)*'}")
     lines.append(f"- **Caption in the file itself:** {record['embedded_caption'] or '*(none)*'}")
+    lines.append(f"- **Tags in the file itself:** {', '.join(record['embedded_tags']) or '*(none)*'}")
     if record["history"]:
         lines += ["", "## History", "",
-                  "| When (UTC) | By | Action | Title | Caption | Previously shown |",
-                  "|---|---|---|---|---|---|"]
+                  "| When (UTC) | By | Action | Title | Caption | Tags | Previously shown |",
+                  "|---|---|---|---|---|---|---|"]
         for h in record["history"]:
-            previous = " / ".join(part for part in (h["previous_title"], h["previous_caption"]) if part)
+            previous = " / ".join(part for part in (
+                h["previous_title"], h["previous_caption"], ", ".join(h["previous_tags"])) if part)
             lines.append("| " + " | ".join(_cell(x) for x in (
-                h["time"], h["by"], h["action"], h["title"], h["caption"], previous)) + " |")
+                h["time"], h["by"], h["action"], h["title"], h["caption"], ", ".join(h["tags"]), previous)) + " |")
     return "\n".join(lines) + "\n"
 
 
@@ -330,6 +362,8 @@ figure{margin:0;background:var(--card);border:1px solid var(--line);border-radiu
 figure img{display:block;width:100%;height:12rem;object-fit:cover;background:var(--line)}
 figcaption{padding:.6rem .7rem}.t{font-weight:600;overflow-wrap:anywhere}.c{margin:.25rem 0}
 .s{color:var(--muted);font-size:.8rem}a{color:var(--accent)}
+.tags{display:flex;flex-wrap:wrap;gap:.25rem;margin:.4rem 0 0;padding:0;list-style:none}
+.tags li{padding:0 .6em;font-size:.75rem;line-height:1.6;color:var(--muted);border:1px solid var(--line);border-radius:1em}
 .badge{display:inline-block;padding:0 .4em;border:1px solid var(--line);border-radius:1em;font-size:.75rem}
 [hidden]{display:none!important}
 """
@@ -352,7 +386,7 @@ def render_index_html(records, md_paths, image_paths, out_dir, generated):
     for namespace in sorted(groups, key=str.lower):
         body.append(f'<section><h2>{html.escape(namespace or "(root)")}</h2><div class="grid">')
         for r in groups[namespace]:
-            search = " ".join((r["title"], r["caption"], r["filename"], r["namespace"])).lower()
+            search = " ".join([r["title"], r["caption"], r["filename"], r["namespace"]] + r["tags"]).lower()
             image_url = relative_url(image_paths[r["id"]], out_dir)
             md_url = relative_url(md_paths[r["id"]], out_dir)
             approved = ""
@@ -364,6 +398,7 @@ def render_index_html(records, md_paths, image_paths, out_dir, generated):
                 f'<a href="{image_url}"><img src="{image_url}" alt="{html.escape(r["filename"], quote=True)}" loading="lazy"></a>'
                 f'<figcaption><div class="t">{html.escape(r["title"])}</div>'
                 f'<div class="c">{html.escape(r["caption"])}</div>'
+                + (('<ul class="tags">' + "".join(f"<li>{html.escape(t)}</li>" for t in r["tags"]) + "</ul>") if r["tags"] else "") +
                 f'<div class="s">{html.escape(r["filename"])}{approved} · <a href="{md_url}">.md</a></div>'
                 f'</figcaption></figure>')
         body.append("</div></section>")

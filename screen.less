@@ -233,3 +233,40 @@ div.plugin-gallery figure.gallery-image {
         }
     }
 }
+
+/** Tag pills */
+div.plugin-gallery {
+    ul.gallery-tags {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.3em;
+        list-style: none;
+        margin: 0.4em 0 0;
+        padding: 0;
+
+        li.gallery-tag {
+            margin: 0;
+            padding: 0 0.7em;
+            font-size: 80%;
+            line-height: 1.7;
+            color: @ini_text_neu;
+            background: @ini_background_alt;
+            border: 1px solid @ini_border;
+            border-radius: 1em;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    // pills turn into filter buttons once the search toolbar is active
+    &.gallery-filterable ul.gallery-tags li.gallery-tag {
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+            color: @ini_link;
+            border-color: @ini_link;
+            outline: none;
+        }
+    }
+}

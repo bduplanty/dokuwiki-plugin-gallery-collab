@@ -17,17 +17,36 @@ function galleryNormalize(text) {
 }
 
 /**
+ * Split a search query into terms
+ *
+ * Words are separated by spaces; text in double quotes is one term, so "family reunion" only matches
+ * those two words next to each other. The terms are normalized.
+ *
+ * @param {string} query
+ * @returns {string[]}
+ */
+function galleryTerms(query) {
+    const terms = [];
+    galleryNormalize(query).replace(/"([^"]*)"|(\S+)/g, function (match, phrase, word) {
+        const term = (phrase !== undefined ? phrase : word.replace(/"/g, '')).trim();
+        if (term) terms.push(term);
+        return match;
+    });
+    return terms;
+}
+
+/**
  * Filter items by a search query and sort them
  *
  * @param {{idx: number, title: string, file: string, date: number, text: string}[]} items
  *        text must already be normalized with galleryNormalize()
- * @param {string} query space separated terms, all of them have to match
+ * @param {string} query terms (see galleryTerms), all of them have to match
  * @param {string} key '' (original order), 'title', 'date' or 'file'
  * @param {string} dir 'asc' or 'desc'
  * @returns {Array} a new, filtered and sorted array
  */
 function gallerySearchSort(items, query, key, dir) {
-    const terms = galleryNormalize(query).split(/\s+/).filter(Boolean);
+    const terms = galleryTerms(query);
     const list = items.filter(function (item) {
         return terms.every(function (term) {
             return item.text.indexOf(term) !== -1;
@@ -192,6 +211,17 @@ jQuery(function () {
             $self.addClass('active');
             $gallery.find('.gallery-page').hide();
             $gallery.find(this.hash).show();
+        });
+
+        // clicking a tag pill filters by that tag, clicking it again clears the filter
+        $gallery.addClass('gallery-filterable');
+        $gallery.find('.gallery-tag').attr({tabindex: 0, role: 'button'});
+        $gallery.on('click keydown', '.gallery-tag', function (e) {
+            if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            const phrase = '"' + jQuery(this).attr('data-tag') + '"';
+            $search.val($search.val() === phrase ? '' : phrase);
+            render(0);
         });
 
         let timer = null;

@@ -1,4 +1,4 @@
-# Backing up and archiving gallerycollab titles and captions
+# Backing up and archiving gallerycollab titles, captions and tags
 
 This guide is for the administrator of a DokuWiki that runs the **gallerycollab** plugin. It explains:
 
@@ -11,7 +11,7 @@ You do not need to run anything on the server. Everything below the download ste
 
 ## 1. Why this matters
 
-gallerycollab never changes the image file when someone suggests a caption. Suggestions, approvals and the history of changes live in small JSON files next to the wiki's media. When `write_iptc` is switched off (the default), or when the image is not a JPEG, the approved title and caption exist **only** in those JSON files. If they are lost, the approved text is lost, and the images alone do not contain it.
+gallerycollab never changes the image file when someone suggests a caption or tags. Suggestions, approvals and the history of changes live in small JSON files next to the wiki's media. When `write_iptc` is switched off (the default), or when the image is not a JPEG, the approved title and caption exist **only** in those JSON files. Approved **tags** are never written into the image files at all, so they always exist only in the JSON files. If they are lost, the approved text is lost, and the images alone do not contain it.
 
 Archiving them as Markdown gives you a copy that is readable without DokuWiki or this plugin.
 
@@ -21,8 +21,8 @@ All paths are relative to your wiki's root folder. The data folder is called `da
 
 | Path | What it holds | Priority |
 |---|---|---|
-| `data/gallery-collab/` | **Suggestions, approved captions and change history.** One `<image name>.json` file per image, in folders that mirror the media namespaces. | **Essential** |
-| `data/media/` | The images. Their embedded titles and captions (JPEG IPTC/XMP) are the "original" text. | **Essential** |
+| `data/gallery-collab/` | **Suggestions, approved titles, captions and tags, and change history.** One `<image name>.json` file per image, in folders that mirror the media namespaces. | **Essential** |
+| `data/media/` | The images. Their embedded titles, captions and keywords (JPEG IPTC/XMP) are the "original" text and tags. | **Essential** |
 | `conf/local.php` | Plugin settings (`contributor_groups`, `reviewer_groups`, `write_iptc`) and `savedir`. | Recommended |
 | `conf/users.auth.php`, `conf/acl.auth.php` | Who is in which group, and namespace permissions. Reviewers and contributors are defined by group membership. | Recommended |
 | `data/pages/` | The wiki pages that contain `{{gallery>...}}`. | Recommended |
@@ -130,9 +130,9 @@ titlesandcaptions/
 
 ### `index.html`
 
-A single page for local viewing: images grouped by namespace, each with its title, caption, file name, a badge when the text was approved by a reviewer, and a link to its `.md` file. The filter box at the top searches titles, captions, file names and namespaces. It needs no internet connection and no web server; double-click it.
+A single page for local viewing: images grouped by namespace, each with its title, caption, tags, file name, a badge when the text was approved by a reviewer, and a link to its `.md` file. The filter box at the top searches titles, captions, file names and namespaces. It needs no internet connection and no web server; double-click it.
 
-The page links to the images in your downloaded `media` folder by relative path, computed when the script ran. If you move the `titlesandcaptions` folder relative to the media folder, run the script again to refresh the links. Thumbnails are the original image files scaled down by the browser, so very large photo collections load slowly.
+The page shows each image's tags as small pills and its search box also matches tags. The page links to the images in your downloaded `media` folder by relative path, computed when the script ran. If you move the `titlesandcaptions` folder relative to the media folder, run the script again to refresh the links. Thumbnails are the original image files scaled down by the browser, so very large photo collections load slowly.
 
 ### Markdown files
 
@@ -145,10 +145,13 @@ filename: "summer_picnic_1.jpeg"
 namespace: "family"
 title: "Summer Picnic at the Lake"
 caption: "Summer 1952, Lakeside Park"
+tags: ["family", "summer", "picnic"]
 title_source: "approved"
 caption_source: "approved"
+tags_source: "approved"
 embedded_title: "Picnic at the lake"
 embedded_caption: "Picnic at the lake"
+embedded_tags: ["family"]
 approved_by: "reviewer1"
 approved_at: "2026-01-15T14:30:00Z"
 ---
@@ -157,17 +160,19 @@ approved_at: "2026-01-15T14:30:00Z"
 
 Summer 1952, Lakeside Park
 
+**Tags:** family, summer, picnic
+
 ## Details
 ...
 ## History
-| When (UTC) | By | Action | Title | Caption | Previously shown |
+| When (UTC) | By | Action | Title | Caption | Tags | Previously shown |
 ```
 
 | Field | Meaning |
 |---|---|
-| `title`, `caption` | What the gallery shows today. |
-| `title_source`, `caption_source` | `approved` (a reviewer's text from the sidecar), `embedded` (the image file's own metadata), `filename` (no title anywhere, derived from the file name like the gallery does), or `none` (no caption). |
-| `embedded_title`, `embedded_caption` | The text stored in the image file itself, kept for comparison. |
+| `title`, `caption`, `tags` | What the gallery shows today. `tags` is a list. |
+| `title_source`, `caption_source`, `tags_source` | `approved` (a reviewer's text from the sidecar), `embedded` (the image file's own metadata), `filename` (no title anywhere, derived from the file name like the gallery does), or `none` (no caption or no tags). |
+| `embedded_title`, `embedded_caption`, `embedded_tags` | The text and keywords stored in the image file itself, kept for comparison. |
 | `approved_by`, `approved_at` | Reviewer login name and UTC time of the latest approval (empty if none). |
 | History table | Every approval and revert: who, when, the new text and the text it replaced. |
 
@@ -177,23 +182,24 @@ How the title and caption are chosen (the same order the gallery uses):
 
 1. Title: the approved title, else the image's IPTC Headline, IPTC Caption or XMP `dc:title`, else a title made from the file name.
 2. Caption: the approved caption, else the image's IPTC Caption, else empty.
+3. Tags: the approved tag list if a reviewer approved one (it replaces the file's tags, and may be empty), else the image's IPTC Keywords merged with its XMP `dc:subject` list.
 
 ### `index.json` (for your own scripts)
 
 ```json
 {
-  "generator": "export_captions.py 1.0.0",
+  "generator": "export_captions.py 1.1.0",
   "generated": "2026-10-24T19:00:00Z",
   "count": 1,
   "images": [
     {
       "id": "family:name.jpeg", "filename": "name.jpeg", "namespace": "family",
-      "title": "...", "caption": "...",
-      "title_source": "approved", "caption_source": "approved",
-      "embedded_title": "...", "embedded_caption": "...",
+      "title": "...", "caption": "...", "tags": ["..."],
+      "title_source": "approved", "caption_source": "approved", "tags_source": "approved",
+      "embedded_title": "...", "embedded_caption": "...", "embedded_tags": ["..."],
       "approved_by": "...", "approved_at": "...",
-      "history": [ { "time": "...", "by": "...", "action": "approved", "title": "...", "caption": "...",
-                     "previous_title": "...", "previous_caption": "..." } ],
+      "history": [ { "time": "...", "by": "...", "action": "approved", "title": "...", "caption": "...", "tags": ["..."],
+                     "previous_title": "...", "previous_caption": "...", "previous_tags": ["..."] } ],
       "image": "../data/media/family/name.jpeg",
       "markdown": "family/name.md"
     }
@@ -205,7 +211,7 @@ How the title and caption are chosen (the same order the gallery uses):
 
 ### Limits to be aware of
 
-- **Embedded text is read from JPEG IPTC and XMP only.** Titles that DokuWiki would take from the EXIF `UserComment` or `ImageDescription` fields are not read; those images get a title made from their file name unless a reviewer approved one. PNG, GIF, WebP and SVG files have no embedded text in this context.
+- **Embedded text and tags are read from JPEG IPTC and XMP only.** Keywords are the IPTC Keywords and the XMP `dc:subject` list; other tag fields (for example Windows `XPKeywords`) are not read. Titles that DokuWiki would take from the EXIF `UserComment` or `ImageDescription` fields are not read; those images get a title made from their file name unless a reviewer approved one. PNG, GIF, WebP and SVG files have no embedded text in this context.
 - **The archive is a snapshot.** Run the export again after new approvals, then keep the dated copy you want.
 - **Names are included.** `approved_by` and the history table contain login names. Remove them before sharing the archive publicly if that matters to you.
 - **The Markdown files are not a replacement for the sidecar backup.** They omit pending and rejected suggestions and cannot be imported back into the plugin.
@@ -217,7 +223,7 @@ How the title and caption are chosen (the same order the gallery uses):
 3. Restore `data/media` if it was lost as well.
 4. Open a gallery page with `?purge=true` appended to the URL. Approved captions appear again.
 
-The archive Markdown files cannot be re-imported. If only the archive survives, a reviewer has to re-approve the text from the `.md` files, or you can write the sidecar JSON yourself (see `classes/CaptionStore.php` for the format: an `override` object with `title`, `description`, `by` and `time`).
+The archive Markdown files cannot be re-imported. If only the archive survives, a reviewer has to re-approve the text from the `.md` files, or you can write the sidecar JSON yourself (see `classes/CaptionStore.php` for the format: an `override` object with `title`, `description`, `tags` (a list, or `null` to keep the file's tags), `by` and `time`).
 
 If the plugin's `write_iptc` option was on, the approved text was also written into the JPEG files themselves, and those files carry it in any backup of `data/media`. This is only a convenience; the sidecar stays the authoritative copy.
 

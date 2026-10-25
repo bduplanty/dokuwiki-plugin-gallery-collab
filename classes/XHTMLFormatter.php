@@ -197,7 +197,11 @@ class XHTMLFormatter extends BasicFormatter
             $fig['data-title'] = $image->getTitle();
             $fig['data-filename'] = $image->getFilename();
             $fig['data-date'] = (string)(int)($image->getCreated() ?: $image->getModified());
-            $fig['data-search'] = implode(' ', [$image->getTitle(), $image->getDescription(), $image->getFilename()]);
+            // one field per line, so a quoted search phrase cannot match across two tags
+            $fig['data-search'] = implode("\n", array_merge(
+                [$image->getTitle(), $image->getDescription(), $image->getFilename()],
+                $image->getTags()
+            ));
         }
         if ($this->options->align !== Options::ALIGN_FULL) {
             $fig['style'] = 'max-width: ' . $this->options->thumbnailWidth . 'px; ';
@@ -233,6 +237,14 @@ class XHTMLFormatter extends BasicFormatter
                 $html .= '<a ' . buildAttributes($a) . '>' . hsc($image->getFilename()) . '</a>';
             }
             $html .= '</figcaption>';
+        }
+
+        if ($this->options->showtags && $image->getTags()) {
+            $html .= '<ul class="gallery-tags">';
+            foreach ($image->getTags() as $tag) {
+                $html .= '<li class="gallery-tag" data-tag="' . hsc($tag) . '">' . hsc($tag) . '</li>';
+            }
+            $html .= '</ul>';
         }
 
         $html .= '</figure>';

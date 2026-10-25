@@ -19,7 +19,8 @@ class Image
     protected $created = 0;
     protected $modified = 0;
     protected $detaillink;
-    protected $overridden = ['title' => false, 'description' => false];
+    protected $tags = [];
+    protected $overridden = ['title' => false, 'description' => false, 'tags' => false];
 
 
     /**
@@ -46,13 +47,34 @@ class Image
             $this->created = $jpegMeta->getField('Date.EarliestTime');
             $this->width = $jpegMeta->getField('File.Width');
             $this->height = $jpegMeta->getField('File.Height');
+            $this->tags = $this->readTags($jpegMeta);
 
             if ($applyOverride) $this->applyOverride();
         }
     }
 
     /**
-     * Replace title and description with the reviewed values from the caption store
+     * Read the keywords stored in the image: IPTC Keywords and XMP dc:subject
+     *
+     * Editors often write both, so the lists are merged without duplicates (ignoring case).
+     *
+     * @param \JpegMeta $jpegMeta
+     * @return string[]
+     */
+    protected function readTags(\JpegMeta $jpegMeta)
+    {
+        $found = [];
+        foreach ([$jpegMeta->getIPTCField('Keywords'), $jpegMeta->getXmpField('dc:subject')] as $field) {
+            if (!is_array($field)) $field = [$field];
+            array_walk_recursive($field, function ($value) use (&$found) {
+                if (is_string($value)) $found[] = $value;
+            });
+        }
+        return CaptionStore::normalizeTags($found);
+    }
+
+    /**
+     * Replace title, description and tags with the reviewed values from the caption store
      */
     protected function applyOverride()
     {
@@ -66,10 +88,14 @@ class Image
             $this->description = $override['description'];
             $this->overridden['description'] = true;
         }
+        if (is_array($override['tags'] ?? null)) {
+            $this->tags = CaptionStore::normalizeTags($override['tags']);
+            $this->overridden['tags'] = true;
+        }
     }
 
     /**
-     * Was the given field ('title' or 'description') replaced by a reviewed caption?
+     * Was the given field ('title', 'description' or 'tags') replaced by a reviewed caption?
      *
      * @param string $field
      * @return bool
@@ -145,6 +171,22 @@ class Image
     public function setDescription($description)
     {
         $this->description = $description;
+    }
+
+    /**
+     * @return string[] the tags to show: approved ones if there are any, else the keywords of the file
+     */
+    public function getTags()
+    {
+        return $this->tags;
+    }
+
+    /**
+     * @param string[] $tags
+     */
+    public function setTags(array $tags)
+    {
+        $this->tags = $tags;
     }
 
     /**

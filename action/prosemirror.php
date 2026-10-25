@@ -157,6 +157,7 @@ class action_plugin_gallerycollab_prosemirror extends ActionPlugin
             'showname' => $options->showname,
             'showtitle' => $options->showtitle,
             'toolbar' => $options->toolbar,
+            'showtags' => $options->showtags,
             'crop' => $options->crop,
             'direct' => $options->direct,
             'reverse' => $options->reverse,

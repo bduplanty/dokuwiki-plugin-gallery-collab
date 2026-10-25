@@ -10,9 +10,12 @@ use dokuwiki\Utf8\PhpString;
  * One JSON file per image below data/gallery-collab/. The image file itself is never touched here.
  *
  * Layout of a sidecar file:
- *   suggestions: list of {id, user, time, title, description, status, reviewer, reviewed}
- *   override:    null or {title, description, by, time} - the approved caption shown in galleries
- *   history:     list of {time, by, suggestion, previous: {title, description}, new: {title, description}}
+ *   suggestions: list of {id, user, time, title, description, tags, status, reviewer, reviewed}
+ *                tags is the proposed complete tag list, or null if the suggestion does not touch tags
+ *   override:    null or {title, description, tags, by, time} - the approved caption and tags shown in
+ *                galleries; tags is null (keep the file's tags) or a complete list (may be empty)
+ *   history:     list of {time, by, suggestion, previous: {title, description, tags},
+ *                new: {title, description, tags}}
  *
  * @author Bruce DuPlanty <bduplanty@gmail.com>
  */
@@ -21,6 +24,8 @@ class CaptionStore
     public const MAX_TITLE = 200;
     public const MAX_DESCRIPTION = 2000;
     public const MAX_PENDING = 10;
+    public const MAX_TAGS = 30;
+    public const MAX_TAG_LENGTH = 50;
 
     public const PENDING = 'pending';
     public const APPROVED = 'approved';
@@ -96,16 +101,18 @@ class CaptionStore
      * @param string $user login name of the contributor
      * @param string $title suggested title (may be empty)
      * @param string $description suggested caption (may be empty)
+     * @param string[]|null $tags the proposed complete tag list, null if tags are not part of the suggestion
      * @return array the new suggestion
-     * @throws \RuntimeException with code 'empty' or 'limit'
+     * @throws \RuntimeException with message 'empty' or 'limit'
      */
-    public function addSuggestion($user, $title, $description)
+    public function addSuggestion($user, $title, $description, $tags = null)
     {
         $title = $this->cleanTitle($title);
         $description = $this->cleanDescription($description);
-        if ($title === '' && $description === '') throw new \RuntimeException('empty');
+        if ($tags !== null) $tags = self::normalizeTags($tags);
+        if ($title === '' && $description === '' && $tags === null) throw new \RuntimeException('empty');
 
-        return $this->update(function (&$data) use ($user, $title, $description) {
+        return $this->update(function (&$data) use ($user, $title, $description, $tags) {
             $pending = 0;
             foreach ($data['suggestions'] as $s) {
                 if ($s['user'] === $user && $s['status'] === self::PENDING) $pending++;
@@ -118,6 +125,7 @@ class CaptionStore
                 'time' => time(),
                 'title' => $title,
                 'description' => $description,
+                'tags' => $tags,
                 'status' => self::PENDING,
                 'reviewer' => '',
                 'reviewed' => 0,
@@ -178,13 +186,16 @@ class CaptionStore
      * @param string $reviewer login name of the reviewer
      * @param array $previous {title, description} that were shown before the change
      * @param string $sid ID of the suggestion this is based on, empty for a direct edit
+     * @param string[]|null $tags the approved complete tag list; null leaves the tags as they are
+     *                            (an earlier approved list stays, otherwise the file's tags are used)
      */
-    public function approve($title, $description, $reviewer, array $previous, $sid = '')
+    public function approve($title, $description, $reviewer, array $previous, $sid = '', $tags = null)
     {
         $title = $this->cleanTitle($title);
         $description = $this->cleanDescription($description);
+        if ($tags !== null) $tags = self::normalizeTags($tags);
 
-        $this->update(function (&$data) use ($title, $description, $reviewer, $previous, $sid) {
+        $this->update(function (&$data) use ($title, $description, $reviewer, $previous, $sid, $tags) {
             $now = time();
             foreach ($data['suggestions'] as &$s) {
                 if ($s['id'] !== $sid) continue;
@@ -194,9 +205,12 @@ class CaptionStore
             }
             unset($s);
 
+            if ($tags === null) $tags = $data['override']['tags'] ?? null;
+
             $data['override'] = [
                 'title' => $title,
                 'description' => $description,
+                'tags' => $tags,
                 'by' => $reviewer,
                 'time' => $now,
             ];
@@ -205,7 +219,7 @@ class CaptionStore
                 'by' => $reviewer,
                 'suggestion' => $sid,
                 'previous' => $previous,
-                'new' => ['title' => $title, 'description' => $description],
+                'new' => ['title' => $title, 'description' => $description, 'tags' => $tags],
             ];
         });
     }
@@ -230,6 +244,56 @@ class CaptionStore
             ];
         });
     }
+
+    // region Tags
+
+    /**
+     * Turn user input into a clean tag list
+     *
+     * Accepts a list or a string separated by commas, semicolons or line breaks. Tags are trimmed, have
+     * inner whitespace collapsed, are cut to MAX_TAG_LENGTH, and duplicates (ignoring case) are dropped;
+     * at most MAX_TAGS are kept. The order of first appearance is preserved.
+     *
+     * @param string|string[] $tags
+     * @return string[]
+     */
+    public static function normalizeTags($tags)
+    {
+        if (!is_array($tags)) $tags = preg_split('/[,;\r\n]+/', (string)$tags);
+
+        $result = [];
+        $seen = [];
+        foreach ($tags as $tag) {
+            if (!is_string($tag)) continue;
+            $tag = trim(preg_replace('/[\s\p{Cc}]+/u', ' ', $tag));
+            $tag = PhpString::substr($tag, 0, self::MAX_TAG_LENGTH);
+            $key = PhpString::strtolower($tag);
+            if ($tag === '' || isset($seen[$key])) continue;
+            $seen[$key] = true;
+            $result[] = $tag;
+            if (count($result) >= self::MAX_TAGS) break;
+        }
+        return $result;
+    }
+
+    /**
+     * Do two tag lists contain the same tags, ignoring order and case?
+     *
+     * @param string[] $a
+     * @param string[] $b
+     * @return bool
+     */
+    public static function sameTags(array $a, array $b)
+    {
+        $fold = function (array $tags) {
+            $tags = array_map([PhpString::class, 'strtolower'], self::normalizeTags($tags));
+            sort($tags);
+            return $tags;
+        };
+        return $fold($a) === $fold($b);
+    }
+
+    // endregion
 
     // region Internals
 

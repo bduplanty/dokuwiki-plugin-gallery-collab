@@ -34,6 +34,7 @@ $meta['options'] = array('multicheckbox', '_choices' => array(
     'reverse',
     'showcaption',
     'showname',
+    'showtags',
     'showtitle',
     'toolbar',
 ));
