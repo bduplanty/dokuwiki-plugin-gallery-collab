@@ -63,6 +63,44 @@ function gallerySearchSort(items, query, key, dir) {
     return list;
 }
 
+/**
+ * Read the remembered sort choice of a gallery
+ *
+ * The choice lives in the visitor's browser only (localStorage). Storage can be missing or blocked, so
+ * every access is guarded and the gallery simply starts in its default order.
+ *
+ * @param {string} key storage key
+ * @returns {{by: string, dir: string}|null}
+ */
+function galleryLoadSort(key) {
+    try {
+        const saved = JSON.parse(window.localStorage.getItem(key));
+        if (saved && typeof saved.by === 'string' && typeof saved.dir === 'string') return saved;
+    } catch (e) {
+        // no storage or broken value
+    }
+    return null;
+}
+
+/**
+ * Remember the sort choice of a gallery, or forget it when it is the default
+ *
+ * @param {string} key storage key
+ * @param {string} by sort field, '' for the default order
+ * @param {string} dir 'asc' or 'desc'
+ */
+function gallerySaveSort(key, by, dir) {
+    try {
+        if (by === '' && dir === 'asc') {
+            window.localStorage.removeItem(key);
+        } else {
+            window.localStorage.setItem(key, JSON.stringify({by: by, dir: dir}));
+        }
+    } catch (e) {
+        // no storage: nothing to remember
+    }
+}
+
 jQuery(function () {
     jQuery('.plugin-gallery').has('.gallery-toolbar').each(function () {
         const $gallery = jQuery(this);
@@ -75,6 +113,9 @@ jQuery(function () {
         const pageSize = parseInt($gallery.attr('data-paginate'), 10) || 0;
         const galleryID = $gallery.attr('id').replace(/^plugin__gallery_/, '');
         const gridStyle = $gallery.find('.gallery-page').first().attr('style');
+        // one remembered choice per gallery: page + gallery ID
+        const storageKey = 'gallerycollab.sort.' + (window.JSINFO && JSINFO.id ? JSINFO.id : window.location.pathname) +
+            '.' + galleryID;
 
         // everything the server rendered, in its original order
         const items = $gallery.find('figure.gallery-image').map(function (idx) {
@@ -167,8 +208,18 @@ jQuery(function () {
             }
         });
         $sortBy.add($sortDir).on('change', function () {
+            gallerySaveSort(storageKey, $sortBy.val(), $sortDir.val());
             render(0);
         });
+
+        // restore the remembered choice, ignoring values this gallery does not offer
+        const saved = galleryLoadSort(storageKey);
+        if (saved) {
+            if ($sortBy.find('option').filter(function () {
+                return this.value === saved.by;
+            }).length) $sortBy.val(saved.by);
+            if (saved.dir === 'asc' || saved.dir === 'desc') $sortDir.val(saved.dir);
+        }
 
         $toolbar.css('display', 'flex');
         render(0);

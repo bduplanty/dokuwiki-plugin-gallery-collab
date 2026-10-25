@@ -67,6 +67,10 @@ Add one entry per change, newest first, using this template:
             - Server side: toolbar markup and per-figure data-title/-filename/-date/-search
               attributes (only when the option is on). The toolbar is hidden until JavaScript runs.
             - Titles and captions come from the approved captions, so searches match reviewed text.
+            - The visitor's sort field and direction are remembered per gallery (page + gallery ID)
+              in the browser's localStorage and restored on the next visit. The search text is not
+              remembered. Unknown or damaged saved values and blocked storage are ignored; choosing
+              the default order forgets the saved choice.
   Compat  : No change for galleries without the option. Wording is English only; other
             languages fall back to English until lang/*/lang.php entries are added.
 
